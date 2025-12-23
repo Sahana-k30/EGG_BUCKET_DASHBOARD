@@ -25,10 +25,6 @@ export default function AdminDashboard() {
             Welcome back! Here’s what’s happening today.
           </p>
         </div>
-
-        <div className="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">
-          U
-        </div>
       </div>
 
       {/* About Egg Bucket */}
