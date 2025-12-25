@@ -7,11 +7,9 @@ import {
   faStore,
   faMoneyBill,
   faWallet,
+  faIndianRupeeSign,
   faArrowsSplitUpAndLeft,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faIndianRupeeSign } from "@fortawesome/free-solid-svg-icons";
-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const Distributorcomp = () => {
