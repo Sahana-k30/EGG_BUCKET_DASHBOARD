@@ -1,5 +1,4 @@
   import React from 'react'
-  import WeeklyTrendGraph from "../assets/weeklyTrend.jpg";
 
 
   const Weeklytrend = () => {
