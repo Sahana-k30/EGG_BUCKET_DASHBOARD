@@ -100,7 +100,7 @@ export default function Sidebar() {
           className={linkClass("/admin/distribution")}
         >
           <FontAwesomeIcon icon={faUsers} />
-          {open && "Add Distributor"}
+          {open && "Add Data Agent"}
         </Link>
 
         <Link to="/admin/outlets" className={linkClass("/admin/outlets")}>

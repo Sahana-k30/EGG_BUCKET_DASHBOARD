@@ -402,12 +402,13 @@ export default function CashPayment() {
       to = new Date(customTo);
     }
 
-    if (!from || !to) return rows;
-
-    return rows.filter((row) => {
-      const d = new Date(row.date);
-      return d >= from && d <= to;
-    });
+    let filtered = (!from || !to)
+      ? rows
+      : rows.filter((row) => {
+          const d = new Date(row.date);
+          return d >= from && d <= to;
+        });
+    return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending (oldest to newest)
   }, [rows, rangeType, customFrom, customTo]);
 
   // Totals by outlet and grand total

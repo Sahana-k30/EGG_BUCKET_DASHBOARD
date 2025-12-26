@@ -386,10 +386,12 @@ export default function DailyDamages() {
     setEntryTotal(total);
   };
 
-  const filteredData = damages.filter((d) => {
-    if (!fromDate || !toDate) return true;
-    return d.date >= fromDate && d.date <= toDate;
-  });
+  const filteredData = damages
+    .filter((d) => {
+      if (!fromDate || !toDate) return true;
+      return d.date >= fromDate && d.date <= toDate;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending (oldest to newest)
 
   const downloadExcel = () => {
     if (filteredData.length === 0) {

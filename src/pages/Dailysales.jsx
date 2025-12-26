@@ -81,18 +81,21 @@ const Dailysales = () => {
     setRows(prev => [newrow, ...prev]);
   }
 
+  // Sort rows by date ascending (oldest to newest)
+  const sortedRows = [...rows].sort((a, b) => new Date(a.date) - new Date(b.date));
+
   return (
     <div className='flex'>
       <div className='bg-[#F8F6F2] min-h-screen p-6 w-340'>
 
       <Topbar/>
       <Dailyheader/>
-      <DailyTable rows={rows} outlets={outlets}/>
+      <DailyTable rows={sortedRows} outlets={outlets}/>
       <div className="grid grid-cols-3 gap-6 mt-10">
 
         {/* Entry Form (biggest block) */}
         <div className="col-span-2">
-          <Dailyentryform addrow={addrow} blockeddates={blockeddates} rows={rows} outlets={outlets}/>
+          <Dailyentryform addrow={addrow} blockeddates={blockeddates} rows={sortedRows} outlets={outlets}/>
         </div>
 
         <div className="flex flex-col">

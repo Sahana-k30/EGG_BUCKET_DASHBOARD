@@ -434,12 +434,14 @@ export default function DigitalPayment() {
     let from = filterFrom ? new Date(filterFrom) : null;
     let to = filterTo ? new Date(filterTo) : null;
 
-    return rows.filter((row) => {
-      const d = new Date(row.date);
-      if (from && d < from) return false;
-      if (to && d > to) return false;
-      return true;
-    });
+    return rows
+      .filter((row) => {
+        const d = new Date(row.date);
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+      })
+      .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending (oldest to newest)
   }, [rows, filterFrom, filterTo]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
