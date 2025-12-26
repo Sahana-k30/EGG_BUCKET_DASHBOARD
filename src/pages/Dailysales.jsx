@@ -64,8 +64,6 @@ const SAMPLE_OUTLETS = [
   },
 ];
 
-const STORAGE_KEY = "egg_outlets_v1";
-
 const Dailysales = () => {
   const STORAGE_KEY = "dailySales_v2";
 
@@ -129,7 +127,9 @@ const Dailysales = () => {
     }
   },[rows,isLoaded]);
 
-  const blockeddates=rows.map(row=> row.date);
+  const blockeddates = rows
+  .filter(r => r.locked)
+  .map(r => r.date);
 
   const addrow=(newrow)=>{
     setRows(prev => [newrow, ...prev]);
