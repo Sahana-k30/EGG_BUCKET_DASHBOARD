@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import Topbar from "../components/Topbar";
 import Sidebar from "../components/Sidebar";
@@ -15,7 +16,7 @@ const Users = () => {
       const isViewer = (Array.isArray(roles) ? roles : [roles]).some(r => (r || '').toLowerCase() === 'viewer');
       const collection = isViewer ? 'viewers' : 'users';
       try {
-        await fetch('/api/admin/delete-user', {
+        await fetch(`${API_URL}/admin/delete-user`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, collection }),
@@ -79,7 +80,7 @@ const Users = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch("/api/admin/all-viewers");
+        const res = await fetch(`${API_URL}/admin/all-viewers`);
         const data = await res.json();
         setUsers(Array.isArray(data) ? data : []);
       } catch {

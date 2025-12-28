@@ -1,4 +1,6 @@
 import { useState } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL;
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/Logo.png";
 import egg from "../assets/egg.png";
@@ -19,7 +21,7 @@ export default function SignIn() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/signin", {
+      const res = await fetch(`${API_URL}/auth/signin`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password, role: role.toLowerCase() }),
