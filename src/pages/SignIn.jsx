@@ -61,6 +61,25 @@ export default function SignIn() {
         navigate("/admin/dashboard");
       } else {
         navigate("/dashboard");
+        // Viewer: redirect to first allowed feature
+        const roles = Array.isArray(data.user.roles) ? data.user.roles : (data.user.role ? [data.user.role] : []);
+        // Map roles to paths in order of preference
+        const roleToPath = {
+          daily_sales: "/admin/dailysales",
+          outlets: "/admin/outlets",
+          digital_payments: "/admin/digital-payments",
+          cash_payments: "/admin/cash-payments",
+          neccrate: "/admin/neccrate",
+          daily_damages: "/admin/damages"
+        };
+        let firstPath = null;
+        for (const r of Object.keys(roleToPath)) {
+          if (roles.includes(r)) {
+            firstPath = roleToPath[r];
+            break;
+          }
+        }
+        navigate(firstPath || "/signin");
       }
 
     } catch (err) {

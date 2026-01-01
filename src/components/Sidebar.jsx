@@ -18,6 +18,13 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 export default function Sidebar() {
+  // Get user from localStorage
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem("user"));
+  } catch {}
+  const isAdmin = user && (user.role === "Admin" || (Array.isArray(user.roles) && user.roles.includes("admin")));
+  const viewerRoles = Array.isArray(user?.roles) ? user.roles : (user?.role ? [user.role] : []);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(true);
@@ -60,59 +67,61 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="space-y-2">
-        <Link to="/admin/dashboard" className={linkClass("/admin/dashboard")}>
-          <FontAwesomeIcon icon={faTableCells} />
-          {open && "Dashboard"}
-        </Link>
-
-        <Link to="/admin/damages" className={linkClass("/admin/damages")}>
-          <FontAwesomeIcon icon={faExclamationTriangle} />
-          {open && "Daily Damages"}
-        </Link>
-
-        <Link to="/admin/neccrate" className={linkClass("/admin/neccrate")}>
-          <FontAwesomeIcon icon={faEgg} />
-          {open && "NECC Rate"}
-        </Link>
-
-        <Link to="/admin/dailysales" className={linkClass("/admin/dailysales")}>
-          <FontAwesomeIcon icon={faIndianRupeeSign} />
-          {open && "Daily Sales"}
-        </Link>
-
-        <Link
-          to="/admin/digital-payments"
-          className={linkClass("/admin/digital-payments")}
-        >
-          <FontAwesomeIcon icon={faWallet} />
-          {open && "Digital Payments"}
-        </Link>
-
-        <Link
-  to="/admin/cash-payments"
-  className={linkClass("/admin/cash-payments")}
->
-  <FontAwesomeIcon icon={faMoneyBillWave} />
-  {open && "Cash Payments"}
-</Link>
-
-        <Link
-          to="/admin/distribution"
-          className={linkClass("/admin/distribution")}
-        >
-          <FontAwesomeIcon icon={faUsers} />
-          {open && "Add Data Agent"}
-        </Link>
-
-        <Link to="/admin/outlets" className={linkClass("/admin/outlets")}>
-          <FontAwesomeIcon icon={faStore} />
-          {open && "Outlets"}
-        </Link>
-
-        <Link to="/admin/users" className={linkClass("/admin/users")}>
-          <FontAwesomeIcon icon={faUsers} />
-          {open && "Users"}
-        </Link>
+        {/* Admin: show all links. Viewer: show only allowed links. */}
+        {(isAdmin || viewerRoles.includes("dashboard")) && (
+          <Link to="/admin/dashboard" className={linkClass("/admin/dashboard")}> 
+            <FontAwesomeIcon icon={faTableCells} />
+            {open && "Dashboard"}
+          </Link>
+        )}
+        {isAdmin && (
+          <Link to="/admin/damages" className={linkClass("/admin/damages")}> 
+            <FontAwesomeIcon icon={faExclamationTriangle} />
+            {open && "Daily Damages"}
+          </Link>
+        )}
+        {(isAdmin || viewerRoles.includes("neccrate")) && (
+          <Link to="/admin/neccrate" className={linkClass("/admin/neccrate")}> 
+            <FontAwesomeIcon icon={faEgg} />
+            {open && "NECC Rate"}
+          </Link>
+        )}
+        {(isAdmin || viewerRoles.includes("daily_sales")) && (
+          <Link to="/admin/dailysales" className={linkClass("/admin/dailysales")}> 
+            <FontAwesomeIcon icon={faIndianRupeeSign} />
+            {open && "Daily Sales"}
+          </Link>
+        )}
+        {(isAdmin || viewerRoles.includes("digital_payments")) && (
+          <Link to="/admin/digital-payments" className={linkClass("/admin/digital-payments")}> 
+            <FontAwesomeIcon icon={faWallet} />
+            {open && "Digital Payments"}
+          </Link>
+        )}
+        {(isAdmin || viewerRoles.includes("cash_payments")) && (
+          <Link to="/admin/cash-payments" className={linkClass("/admin/cash-payments")}> 
+            <FontAwesomeIcon icon={faMoneyBillWave} />
+            {open && "Cash Payments"}
+          </Link>
+        )}
+        {(isAdmin || viewerRoles.includes("distribution")) && (
+          <Link to="/admin/distribution" className={linkClass("/admin/distribution")}> 
+            <FontAwesomeIcon icon={faUsers} />
+            {open && "Add Data Agent"}
+          </Link>
+        )}
+        {(isAdmin || viewerRoles.includes("outlets")) && (
+          <Link to="/admin/outlets" className={linkClass("/admin/outlets")}> 
+            <FontAwesomeIcon icon={faStore} />
+            {open && "Outlets"}
+          </Link>
+        )}
+        {isAdmin && (
+          <Link to="/admin/users" className={linkClass("/admin/users")}> 
+            <FontAwesomeIcon icon={faUsers} />
+            {open && "Users"}
+          </Link>
+        )}
       </nav>
 
       {/* Sign Out */}
