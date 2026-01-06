@@ -12,6 +12,7 @@ import CashPayments from "./pages/CashPayments";
 import DigitalPayments from "./pages/DigitalPayments";
 import Outlets from "./pages/Outlets";
 import Users from "./pages/Users";
+import Reports from "./pages/Reports";
 import { Navigate } from "react-router-dom";
 
 import DataAgentDashboard from "./pages/DataAgentDashboard";
@@ -81,6 +82,10 @@ function App() {
             <Route
               path="/admin/users"
               element={<ProtectedRoute element={<AdminLayoutWithPanel><Users /></AdminLayoutWithPanel>} requiredRole={null} />}
+            />
+            <Route
+              path="/admin/reports"
+              element={<ProtectedRoute element={<AdminLayoutWithPanel><Reports /></AdminLayoutWithPanel>} requiredRole={null} />}
             />
 
             {/* DATA AGENT */}

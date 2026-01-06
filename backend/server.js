@@ -13,6 +13,7 @@ import distributorRoutes from "./routes/distributorRoutes.js";
 import digitalPaymentsRoutes from "./routes/digitalPaymentsRoutes.js";
 import cashPaymentsRoutes from "./routes/cashPaymentsRoutes.js";
 import outletRoutes from "./routes/outletRoutes.js";
+import reportsRoutes from "./routes/reportsRoutes.js"; // ← ADD THIS LINE
 
 const app = express();
 
@@ -34,6 +35,12 @@ app.use("/api/distributor", distributorRoutes);
 app.use("/api/cash-payments", cashPaymentsRoutes);
 app.use("/api/digital-payments", digitalPaymentsRoutes);
 app.use("/api/outlets", outletRoutes);
+app.use("/api/reports", reportsRoutes); // ← ADD THIS LINE
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () =>
+  console.log(`Backend running at http://localhost:${PORT}`)
+);
 
 // Serve frontend static files
 const __filename = fileURLToPath(import.meta.url);
@@ -42,14 +49,6 @@ const frontendPath = path.join(__dirname, "../dist");
 app.use(express.static(frontendPath));
 
 // Fallback: serve index.html for any non-API route (SPA support)
-app.get("/", (req, res) => {
-  // If the request starts with /api, skip to next middleware
-  if (req.path.startsWith("/api")) return res.status(404).json({ error: "API route not found" });
+app.get(/^(?!\/api).*/, (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
-});
-
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Backend running at http://localhost:${PORT}`);
 });

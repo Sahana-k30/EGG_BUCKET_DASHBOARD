@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import logo from "../assets/Logo.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUserPlus } from "@fortawesome/free-solid-svg-icons";
 import { faIndianRupeeSign } from "@fortawesome/free-solid-svg-icons";
 import { faMoneyBillWave } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -133,6 +134,25 @@ export default function Sidebar() {
             </Link>
           </>
         )}
+        {dataAgentRoles && dataAgentRoles.includes("distribution") && !isAdmin && (
+          <Link to="/admin/distribution" className={linkClass("/admin/distribution")}> 
+            <FontAwesomeIcon icon={faUserPlus} />
+            {open && "Add Data Agent"}
+          </Link>
+        )}
+        {dataAgentRoles && dataAgentRoles.includes("outlets") && !isAdmin && (
+          <Link to="/admin/outlets" className={linkClass("/admin/outlets")}> 
+            <FontAwesomeIcon icon={faStore} />
+            {open && "Outlets"}
+          </Link>
+        )}
+        {isAdmin && (
+          <Link to="/admin/reports" className={linkClass("/admin/reports")}> 
+            <FontAwesomeIcon icon={faChartLine} />
+            {open && "Reports"}
+          </Link>
+        )}
+        {/* Removed duplicate Users link for admin */}
         {!isAdmin && !isViewer && (
           <>
             {(dataAgentRoles.includes("dashboard")) && (
@@ -177,12 +197,7 @@ export default function Sidebar() {
                 {open && "Add Data Agent"}
               </Link>
             )}
-            {(dataAgentRoles.includes("outlets")) && (
-              <Link to="/admin/outlets" className={linkClass("/admin/outlets")}> 
-                <FontAwesomeIcon icon={faStore} />
-                {open && "Outlets"}
-              </Link>
-            )}
+            {/* Removed duplicate Outlets link for data agents */}
           </>
         )}
       </nav>
