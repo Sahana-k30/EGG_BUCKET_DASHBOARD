@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -39,3 +41,22 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`Backend running at http://localhost:${PORT}`)
 );
+
+// Serve frontend static files
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendPath = path.join(__dirname, "../dist");
+app.use(express.static(frontendPath));
+
+// Fallback: serve index.html for any non-API route (SPA support)
+app.get("/", (req, res) => {
+  // If the request starts with /api, skip to next middleware
+  if (req.path.startsWith("/api")) return res.status(404).json({ error: "API route not found" });
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
+
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Backend running at http://localhost:${PORT}`);
+});
