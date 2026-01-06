@@ -49,7 +49,7 @@ const frontendPath = path.join(__dirname, "../dist");
 app.use(express.static(frontendPath));
 
 // Fallback: serve index.html for any non-API route (SPA support)
-app.get("/", (req, res) => {
+app.get("*", (req, res) => {
   // If the request starts with /api, skip to next middleware
   if (req.path.startsWith("/api")) return res.status(404).json({ error: "API route not found" });
   res.sendFile(path.join(frontendPath, "index.html"));
