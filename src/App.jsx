@@ -90,9 +90,9 @@ function App() {
 
             {/* DATA AGENT */}
             <Route path="/dashboard" element={<DataAgentDashboard />} />
+            <Route path="/viewer/data" element={<ViewerData/>}/>
 
-            {/* VIEWER ROUTE */}
-            <Route path="/viewer/data" element={<ViewerData />} />
+            
           </Routes>
         </BrowserRouter>
       </PanelProvider>

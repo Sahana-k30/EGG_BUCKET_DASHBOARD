@@ -112,13 +112,25 @@ export default function Sidebar() {
         )}
         {isViewer && (
           <>
-            <Link to="/viewer/data" className={linkClass("/viewer/data")}> 
-              <FontAwesomeIcon icon={faTableCells} />
-              {open && "Viewer Data"}
+            <Link to="/admin/damages" className={linkClass("/admin/damages")}> 
+              <FontAwesomeIcon icon={faExclamationTriangle} />
+              {open && "Daily Damages"}
             </Link>
-            <Link to="/admin/reports" className={linkClass("/admin/reports")}> 
-              <FontAwesomeIcon icon={faChartLine} />
-              {open && "Reports"}
+            <Link to="/admin/neccrate" className={linkClass("/admin/neccrate")}> 
+              <FontAwesomeIcon icon={faEgg} />
+              {open && "NECC Rate"}
+            </Link>
+            <Link to="/admin/dailysales" className={linkClass("/admin/dailysales")}> 
+              <FontAwesomeIcon icon={faIndianRupeeSign} />
+              {open && "Daily Sales"}
+            </Link>
+            <Link to="/admin/digital-payments" className={linkClass("/admin/digital-payments")}> 
+              <FontAwesomeIcon icon={faWallet} />
+              {open && "Digital Payments"}
+            </Link>
+            <Link to="/admin/cash-payments" className={linkClass("/admin/cash-payments")}> 
+              <FontAwesomeIcon icon={faMoneyBillWave} />
+              {open && "Cash Payments"}
             </Link>
           </>
         )}

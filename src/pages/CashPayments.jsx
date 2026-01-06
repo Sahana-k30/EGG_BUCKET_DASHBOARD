@@ -1,6 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL;
 // src/pages/CashPayment.jsx
 import { useState, useMemo, useEffect } from "react";
+import { getRoleFlags } from "../utils/role";
 import * as XLSX from "xlsx";
 
 import DailyTable from "../components/DailyTable";
@@ -261,6 +262,7 @@ export default function CashPayments() {
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editRow, setEditRow] = useState({});
     const [editValues, setEditValues] = useState({});
+    const {isAdmin, isViewer, isDataAgent}= getRoleFlags();
 
     // Open modal and set values for editing
     const handleEditClick = (row) => {
@@ -601,6 +603,8 @@ export default function CashPayments() {
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8">
       {/* Header */}
+      {(isAdmin || isViewer) && (
+        <>
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
@@ -767,8 +771,11 @@ export default function CashPayments() {
           </div>
         </div>
       )}
+      </>
+      )}
 
       {/* Entry Card */}
+      {(isAdmin || isDataAgent) && (
       <div className="mt-8 rounded-2xl bg-eggWhite p-5 shadow-sm md:p-6">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-lg text-orange-500">
@@ -898,6 +905,8 @@ export default function CashPayments() {
           </div>
         </form>
       </div>
+      )}
     </div>
+
   );
 }

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 const API_URL = import.meta.env.VITE_API_URL;
+import { getRoleFlags } from "../utils/role";
+
 // src/pages/DigitalPayment.jsx
 
 // Edit modal state and handlers must be inside the component body, after imports
@@ -302,11 +304,8 @@ function BaseCalendar({ rows, selectedDate, onSelectDate, showDots }) {
 
 export default function DigitalPayments() {
   // Get user from localStorage and check admin
-  let user = null;
-  try {
-    user = JSON.parse(localStorage.getItem("user"));
-  } catch {}
-  const isAdmin = user && (user.role === "Admin" || (Array.isArray(user.roles) && user.roles.includes("admin")));
+  
+  const { isAdmin, isViewer, isDataAgent } = getRoleFlags();
 
   // --- Edit Modal State ---
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -613,6 +612,8 @@ export default function DigitalPayments() {
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8 flex flex-col">
       {/* Header */}
+      {(isAdmin || isViewer) && (
+        <>
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
@@ -888,8 +889,11 @@ export default function DigitalPayments() {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Entry Card */}
+      {(isAdmin || isDataAgent) && (
       <div className="mt-8 rounded-2xl bg-eggWhite p-5 shadow-sm md:p-6">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100">
@@ -1015,6 +1019,7 @@ export default function DigitalPayments() {
           </div>
         </form>
       </div>
+      )}
     </div>
   );
 }
