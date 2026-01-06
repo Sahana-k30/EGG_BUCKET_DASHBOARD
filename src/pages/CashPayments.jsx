@@ -1,6 +1,10 @@
+const API_URL = import.meta.env.VITE_API_URL;
 // src/pages/CashPayment.jsx
 import { useState, useMemo, useEffect } from "react";
+import { getRoleFlags } from "../utils/role";
 import * as XLSX from "xlsx";
+
+import DailyTable from "../components/DailyTable";
 
 const DEFAULT_OUTLETS = [
   "AECS Layout",
@@ -254,12 +258,65 @@ function CashCalendar({ rows, selectedDate, onSelectDate, showDots = true }) {
 }
 /* ------------------------------------------------ */
 
-function createInitialCashRows(outlets = DEFAULT_OUTLETS) {
-  // Start with no seeded rows — data should be entered by the user
-  return [];
-}
+export default function CashPayments() {
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editRow, setEditRow] = useState({});
+    const [editValues, setEditValues] = useState({});
+    const {isAdmin, isViewer, isDataAgent}= getRoleFlags();
 
-export default function CashPayment() {
+    // Open modal and set values for editing
+    const handleEditClick = (row) => {
+      const fullRow = { ...row };
+      if (!row.id) {
+        const found = rows.find(r => r.date === row.date);
+        if (found && found.id) fullRow.id = found.id;
+      }
+      setEditRow(fullRow);
+      setEditValues({ ...row.outlets });
+      setEditModalOpen(true);
+    };
+
+    // Handle value change in modal
+    const handleEditValueChange = (name, value) => {
+      setEditValues((prev) => ({ ...prev, [name]: Number(value) }));
+    };
+
+    // Cancel edit
+    const handleEditCancel = () => {
+      setEditModalOpen(false);
+      setEditRow({});
+      setEditValues({});
+    };
+
+    // Save edit
+    const handleEditSave = async () => {
+      if (!editRow.id) {
+        alert("No ID found for entry. Cannot update.");
+        return;
+      }
+      const updatedOutlets = { ...editValues };
+      const totalAmount = Object.values(updatedOutlets).reduce((s, v) => s + (Number(v) || 0), 0);
+      try {
+        const response = await fetch(`${API_URL}/cash-payments/${editRow.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: editRow.date, outlets: updatedOutlets, totalAmount }),
+        });
+        if (!response.ok) {
+          alert("Failed to update entry: " + response.status);
+          return;
+        }
+        // Refetch payments after update
+        const res = await fetch(`${API_URL}/cash-payments/all`);
+        const data = await res.json();
+        setRows(Array.isArray(data) ? data : []);
+        setEditModalOpen(false);
+        setEditRow({});
+        setEditValues({});
+      } catch (err) {
+        alert("Error updating entry: " + err.message);
+      }
+    };
   const [outlets, setOutlets] = useState([]);
 
   useEffect(() => {
@@ -295,16 +352,23 @@ export default function CashPayment() {
     };
   }, []);
 
-  const ROWS_STORAGE_KEY = "egg_cash_rows_v1";
-  const [rows, setRows] = useState(() => {
-    const saved = localStorage.getItem(ROWS_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [rows, setRows] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // persist rows
+  // Fetch cash payments from backend
   useEffect(() => {
-    localStorage.setItem(ROWS_STORAGE_KEY, JSON.stringify(rows));
-  }, [rows]);
+    const fetchPayments = async () => {
+      try {
+        const res = await fetch(`${API_URL}/cash-payments/all`);
+        const data = await res.json();
+        setRows(Array.isArray(data) ? data : []);
+      } catch {
+        setRows([]);
+      }
+      setIsLoaded(true);
+    };
+    fetchPayments();
+  }, []);
 
   // If outlets change, remap existing rows so they include all current outlets (missing ones filled with 0) and totals recalculated
   useEffect(() => {
@@ -328,7 +392,10 @@ export default function CashPayment() {
       if (!existing) {
         setEntryValues(() => {
           const reset = {};
-          outlets.forEach((o) => (reset[o] = ""));
+          outlets.forEach((o) => {
+            const area = o.area || o;
+            reset[area] = "";
+          });
           return reset;
         });
       }
@@ -342,7 +409,9 @@ export default function CashPayment() {
   const [entryDate, setEntryDate] = useState("");
   const [entryValues, setEntryValues] = useState(() => {
     const initial = {};
-    outlets.forEach((o) => (initial[o] = ""));
+    DEFAULT_OUTLETS.forEach((area) => {
+      initial[area] = "";
+    });
     return initial;
   });
 
@@ -359,7 +428,10 @@ export default function CashPayment() {
       setHasEntry(false);
       setEntryValues(() => {
         const reset = {};
-        outlets.forEach((o) => (reset[o] = ""));
+        outlets.forEach((o) => {
+          const area = o.area || o;
+          reset[area] = "";
+        });
         return reset;
       });
       setEntryTotal(0);
@@ -375,7 +447,10 @@ export default function CashPayment() {
       setHasEntry(false);
       setEntryValues(() => {
         const reset = {};
-        outlets.forEach((o) => (reset[o] = ""));
+        outlets.forEach((o) => {
+          const area = o.area || o;
+          reset[area] = "";
+        });
         return reset;
       });
       setEntryTotal(0);
@@ -406,7 +481,7 @@ export default function CashPayment() {
           const d = new Date(row.date);
           return d >= from && d <= to;
         });
-    return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending (oldest to newest)
+    return filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [rows, rangeType, customFrom, customTo]);
 
   // Totals by outlet and grand total
@@ -435,7 +510,6 @@ export default function CashPayment() {
 
   const downloadExcel = () => {
     if (!filteredRows || filteredRows.length === 0) {
-      alert("No data available for selected filters");
       return;
     }
 
@@ -464,59 +538,56 @@ export default function CashPayment() {
     }));
   };
 
-  const handleSaveEntry = (e) => {
+  const handleSaveEntry = async (e) => {
     e.preventDefault();
     if (!entryDate) {
-      alert("Please select a collection date.");
       return;
     }
 
     // Block duplicate
     if (rows.some((r) => r.date === entryDate)) {
-      alert(`Entry for ${entryDate} already exists and cannot be modified.`);
-      setHasEntry(true);
       return;
     }
 
     const outletAmounts = {};
     outlets.forEach((o) => {
-      const num = Number(entryValues[o]) || 0;
-      outletAmounts[o] = num;
+      const area = o.area || o;
+      const num = Number(entryValues[area]) || 0;
+      outletAmounts[area] = num;
     });
 
-    const totalAmount = Object.values(outletAmounts).reduce(
-      (sum, v) => sum + v,
-      0
-    );
-
-    // Check if entry for this date already exists
-    const existingEntryIndex = rows.findIndex((row) => row.date === entryDate);
-
-    if (existingEntryIndex !== -1) {
-      // Update existing entry
-      setRows((prev) => {
-        const updated = [...prev];
-        updated[existingEntryIndex] = {
-          ...updated[existingEntryIndex],
-          outlets: outletAmounts,
-          totalAmount,
-        };
-        return updated;
+    // Save to backend
+    try {
+      const response = await fetch(`${API_URL}/cash-payments/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: entryDate, outlets: outletAmounts }),
       });
-    } else {
-      // Create new entry
-      const newRow = {
-        id: rows.length + 1,
-        date: entryDate,
-        outlets: outletAmounts,
-        totalAmount,
-      };
-      setRows((prev) => [newRow, ...prev]);
-    }
 
-    // mark locked
-    setHasEntry(true);
-    setEntryTotal(totalAmount);
+      if (!response.ok) {
+        console.error('Failed to add payment');
+        return;
+      }
+
+      // Refetch from backend after adding
+      const res = await fetch(`${API_URL}/cash-payments/all`);
+      const data = await res.json();
+      setRows(Array.isArray(data) ? data : []);
+
+      // Reset form after successful save
+      setEntryDate("");
+      setEntryValues(() => {
+        const reset = {};
+        outlets.forEach((o) => {
+          const area = o.area || o;
+          reset[area] = "";
+        });
+        return reset;
+      });
+      setHasEntry(false);
+    } catch (err) {
+      console.error('Error adding payment:', err);
+    }
   };
 
   const formatDisplayDate = (iso) => {
@@ -532,6 +603,8 @@ export default function CashPayment() {
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8">
       {/* Header */}
+      {(isAdmin || isViewer) && (
+        <>
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
@@ -660,79 +733,49 @@ export default function CashPayment() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-2xl bg-eggWhite shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr className="text-left text-xs font-semibold text-gray-500">
-                <th className="min-w-[130px] px-4 py-3">Date</th>
-                {outlets.map((outlet) => {
-                  const area = outlet.area || outlet;
-                  const isActive = !outlet.status || outlet.status === "Active";
-                  return (
-                    <th key={area} className="px-4 py-3 whitespace-nowrap">
-                      {area.toUpperCase()}
-                      {!isActive && <span className="text-red-500 text-[10px] block">(Inactive)</span>}
-                    </th>
-                  );
-                })}
-                <th className="px-4 py-3 whitespace-nowrap text-right">
-                  TOTAL AMOUNT
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map((row, idx) => (
-                <tr
-                  key={row.id}
-                  className={`text-xs text-gray-700 md:text-sm ${
-                    idx % 2 === 0 ? "bg-white" : "bg-gray-50/60"
-                  }`}
-                >
-                  <td className="whitespace-nowrap px-4 py-3">
-                    {formatDisplayDate(row.date)}
-                  </td>
-                  {outlets.map((outlet) => {
-                    const area = outlet.area || outlet;
-                    return (
-                      <td
-                        key={area}
-                        className="whitespace-nowrap px-4 py-3"
-                      >
-                        {formatCurrencyNoDecimals(row.outlets[area])}
-                      </td>
-                    );
-                  })}
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">
-                    {formatCurrencyNoDecimals(row.totalAmount)}
-                  </td>
-                </tr>
-              ))}
+      <DailyTable rows={filteredRows} outlets={outlets} onEdit={handleEditClick} />
 
-              <tr className="border-t border-orange-100 bg-orange-50 text-xs font-semibold text-gray-900 md:text-sm">
-                <td className="px-4 py-3">Total</td>
-                {outlets.map((outlet) => {
-                  const area = outlet.area || outlet;
-                  return (
-                    <td
-                      key={area}
-                      className="whitespace-nowrap px-4 py-3"
-                    >
-                      {formatCurrencyNoDecimals(totals.outletTotals[area] || 0)}
-                    </td>
-                  );
-                })}
-                <td className="whitespace-nowrap px-4 py-3 text-right">
-                  {formatCurrencyNoDecimals(totals.grandTotal)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      {/* Edit Modal */}
+      {editModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-xl shadow-lg p-6 min-w-[320px] max-w-full">
+            <h2 className="text-lg font-semibold mb-4">Edit Cash Payment ({editRow.date})</h2>
+            <div className="space-y-3">
+              {outlets.map((o) => {
+                const area = o.area || o;
+                return (
+                  <div key={area} className="flex items-center gap-2">
+                    <label className="w-32 text-xs font-medium text-gray-700">{area}</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={editValues[area] ?? 0}
+                      onChange={e => handleEditValueChange(area, e.target.value)}
+                      className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                onClick={handleEditCancel}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-300"
+              >Cancel</button>
+              <button
+                onClick={handleEditSave}
+                className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600"
+              >Save</button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+      </>
+      )}
 
       {/* Entry Card */}
+      {(isAdmin || isDataAgent) && (
       <div className="mt-8 rounded-2xl bg-eggWhite p-5 shadow-sm md:p-6">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-lg text-orange-500">
@@ -773,7 +816,15 @@ export default function CashPayment() {
               {hasEntry && (
                 <div className="mt-2 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <div className="text-xs font-medium text-green-700">Entry ( ₹ {entryTotal}) • Locked</div>
+                  <div className="text-xs font-medium text-green-700">
+                    Entry (
+                    {formatCurrencyNoDecimals(
+                      entryTotal && entryTotal > 0
+                        ? entryTotal
+                        : Object.values(entryValues || {}).reduce((sum, v) => sum + (Number(v) || 0), 0)
+                    )}
+                    ) • Locked
+                  </div>
                 </div>
               )}
 
@@ -791,7 +842,10 @@ export default function CashPayment() {
                       } else {
                         setEntryValues(() => {
                           const reset = {};
-                          outlets.forEach((o) => (reset[o] = ""));
+                          outlets.forEach((o) => {
+                            const area = o.area || o;
+                            reset[area] = "";
+                          });
                           return reset;
                         });
                       }
@@ -822,7 +876,7 @@ export default function CashPayment() {
                       type="number"
                       min="0"
                       step="1"
-                      value={entryValues[area]}
+                      value={entryValues[area] || ""}
                       onChange={(e) =>
                         handleEntryChange(area, e.target.value)
                       }
@@ -851,6 +905,8 @@ export default function CashPayment() {
           </div>
         </form>
       </div>
+      )}
     </div>
+
   );
 }

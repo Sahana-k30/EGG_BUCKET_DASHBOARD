@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import Topbar from "../components/Topbar";
 import Sidebar from "../components/Sidebar";
@@ -5,6 +6,52 @@ import Sidebar from "../components/Sidebar";
 const escapeRegExp = (s = "") => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const Users = () => {
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editUser, setEditUser] = useState(null);
+
+    // Delete user handler
+    const handleDeleteUser = async (id, username, roles) => {
+      if (!window.confirm('Are you sure you want to delete this user?')) return;
+      // Determine collection: dataagents if roles includes 'dataagent', else users
+      const isDataAgent = (Array.isArray(roles) ? roles : [roles]).some(r => (r || '').toLowerCase() === 'dataagent');
+      const collection = isDataAgent ? 'dataagents' : 'users';
+      try {
+        const response = await fetch(`${API_URL}/admin/delete-user`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, collection }),
+        });
+
+        if (response.ok) {
+          setUsers(users.filter(u => u.id !== id));
+        } else {
+          console.error('Failed to delete user');
+        }
+      } catch (err) {
+        console.error('Error deleting user:', err);
+      }
+    };
+
+    // Edit user handler
+    const handleEditUser = (user) => {
+      setEditUser(user);
+      setEditModalOpen(true);
+    };
+
+    // Save edited user
+    const handleSaveEdit = (updatedUser) => {
+      const updated = users.map(u => u.id === updatedUser.id ? updatedUser : u);
+      setUsers(updated);
+      setEditModalOpen(false);
+      setEditUser(null);
+    };
+
+    // Cancel edit
+    const handleCancelEdit = () => {
+      setEditModalOpen(false);
+      setEditUser(null);
+    };
+
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -35,26 +82,22 @@ const Users = () => {
     };
   }, [overflowOpen]);
 
+  // Fetch users from backend
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("users")) || [];
-
-    // Deduplicate by username (case-insensitive), keeping first occurrence
-    const unique = [];
-    const seen = new Set();
-    for (const u of saved) {
-      const key = (u.username || "").trim().toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(u);
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(`${API_URL}/admin/all-dataagents`);
+        const data = await res.json();
+        setUsers(Array.isArray(data) ? data : []);
+      } catch {
+        setUsers([]);
       }
-    }
+    };
+    fetchUsers();
 
-    if (unique.length !== saved.length) {
-      // Persist cleaned list back to storage
-      localStorage.setItem("users", JSON.stringify(unique));
-    }
-
-    setUsers(unique);
+    // Poll for new users every 5 seconds to keep data fresh
+    const interval = setInterval(fetchUsers, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   // Debounce search input for smoother UX
@@ -265,11 +308,71 @@ const Users = () => {
                   </div>
 
                   <div className="mt-4 flex gap-2">
-                    <button className="text-xs px-3 py-1 rounded-lg border bg-eggAccent text-white hover:opacity-90 transition">Edit</button>
-                    <button className="text-xs px-3 py-1 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:opacity-90 transition">Delete</button>
+                    <button className="text-xs px-3 py-1 rounded-lg border border-red-200 bg-red-50 text-red-700 hover:opacity-90 transition" onClick={() => handleDeleteUser(u.id, u.username, u.roles)}>Delete</button>
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {/* Edit Modal (outside map and grid) */}
+          {editModalOpen && editUser && (
+            <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/30">
+              <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+                <h2 className="text-lg font-semibold mb-4">Edit User</h2>
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    handleSaveEdit(editUser);
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={editUser.fullName || ""}
+                      onChange={e => setEditUser({ ...editUser, fullName: e.target.value })}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <input
+                      type="text"
+                      value={editUser.username || ""}
+                      onChange={e => setEditUser({ ...editUser, username: e.target.value })}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input
+                      type="text"
+                      value={editUser.phone || ""}
+                      onChange={e => setEditUser({ ...editUser, phone: e.target.value })}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <input
+                      type="text"
+                      value={Array.isArray(editUser.roles) ? editUser.roles.join(", ") : (editUser.role || "")}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setEditUser({ ...editUser, roles: val.split(",").map(r => r.trim()).filter(Boolean) });
+                      }}
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button type="button" onClick={handleCancelEdit} className="px-4 py-2 rounded-lg border bg-gray-100 text-gray-700">Cancel</button>
+                    <button type="submit" className="px-4 py-2 rounded-lg bg-eggAccent text-white">Save</button>
+                  </div>
+                </form>
+              </div>
             </div>
           )}
         </div>

@@ -1,6 +1,11 @@
-// src/pages/DigitalPayment.jsx
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+const API_URL = import.meta.env.VITE_API_URL;
+import { getRoleFlags } from "../utils/role";
+
+// src/pages/DigitalPayment.jsx
+
+// Edit modal state and handlers must be inside the component body, after imports
 
 const DEFAULT_OUTLETS = [
   "AECS Layout",
@@ -297,12 +302,66 @@ function BaseCalendar({ rows, selectedDate, onSelectDate, showDots }) {
 }
 /* ----------------------------------------------- */
 
-function createInitialDigitalRows(outlets = DEFAULT_OUTLETS) {
-  // Start with no seeded rows — data should be entered by the user
-  return [];
-} 
+export default function DigitalPayments() {
+  // Get user from localStorage and check admin
+  
+  const { isAdmin, isViewer, isDataAgent } = getRoleFlags();
 
-export default function DigitalPayment() {
+  // --- Edit Modal State ---
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editRow, setEditRow] = useState({});
+  const [editValues, setEditValues] = useState({});
+
+  // Open modal and set values for editing
+  const handleEditClick = (row) => {
+    setEditRow(row);
+    setEditValues({ ...(row.outlets || {}) });
+    setEditModalOpen(true);
+  };
+
+  // Handle value change in modal
+  const handleEditValueChange = (area, value) => {
+    setEditValues((prev) => ({ ...prev, [area]: value }));
+  };
+
+  // Cancel edit
+  const handleEditCancel = () => {
+    setEditModalOpen(false);
+    setEditRow({});
+    setEditValues({});
+  };
+
+  // Save edit
+  const handleEditSave = async () => {
+    if (!editRow.id) return;
+    const updatedOutlets = {};
+    outlets.forEach((o) => {
+      const area = o.area || o;
+      updatedOutlets[area] = Number(editValues[area]) || 0;
+    });
+    try {
+      const response = await fetch(`${API_URL}/digital-payments/${editRow.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: editRow.date, outlets: updatedOutlets }),
+      });
+      if (!response.ok) {
+        alert("Failed to update entry");
+        return;
+      }
+      // Refetch rows after update
+      const res = await fetch(`${API_URL}/digital-payments/all`);
+      const data = await res.json();
+      setRows(Array.isArray(data) ? data : []);
+      setEditModalOpen(false);
+      setEditRow({});
+      setEditValues({});
+    } catch (err) {
+      alert("Error updating entry");
+    }
+  };
+
+  const [rows, setRows] = useState([]);
   const [outlets, setOutlets] = useState([]);
 
   useEffect(() => {
@@ -315,39 +374,24 @@ export default function DigitalPayment() {
     };
 
     loadOutletsFromLocal();
-
-    const onUpdate = (e) => {
-      const outletsList = (e && e.detail && Array.isArray(e.detail)) ? e.detail : null;
-      if (outletsList) {
-        setOutlets(outletsList);
-      } else {
-        loadOutletsFromLocal();
-      }
-    };
-
-    window.addEventListener('egg:outlets-updated', onUpdate);
-
-    const onStorage = (evt) => {
-      if (evt.key === STORAGE_KEY) onUpdate();
-    };
-    window.addEventListener('storage', onStorage);
-
-    return () => {
-      window.removeEventListener('egg:outlets-updated', onUpdate);
-      window.removeEventListener('storage', onStorage);
-    };
   }, []);
 
-  const ROWS_STORAGE_KEY = "egg_digital_rows_v1";
-  const [rows, setRows] = useState(() => {
-    const saved = localStorage.getItem(ROWS_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // persist rows
+  // Fetch digital payments from backend
   useEffect(() => {
-    localStorage.setItem(ROWS_STORAGE_KEY, JSON.stringify(rows));
-  }, [rows]);
+    const fetchPayments = async () => {
+      try {
+        const res = await fetch(`${API_URL}/digital-payments/all`);
+        const data = await res.json();
+        setRows(Array.isArray(data) ? data : []);
+      } catch {
+        setRows([]);
+      }
+      setIsLoaded(true);
+    };
+    fetchPayments();
+  }, []);
 
   // If outlets change, remap existing rows so they include all current outlets (missing ones filled with 0) and totals recalculated
   useEffect(() => {
@@ -387,12 +431,10 @@ export default function DigitalPayment() {
   const [entryDate, setEntryDate] = useState("");
   const [entryValues, setEntryValues] = useState(() => {
     const initial = {};
-    if (Array.isArray(outlets) && outlets.length > 0) {
-      outlets.forEach((o) => {
-        const area = o.area || o;
-        initial[area] = "";
-      });
-    }
+    // Initialize with default outlets to avoid undefined values
+    DEFAULT_OUTLETS.forEach((area) => {
+      initial[area] = "";
+    });
     return initial;
   });
 
@@ -414,7 +456,10 @@ export default function DigitalPayment() {
       setHasEntry(false);
       setEntryValues(() => {
         const reset = {};
-        outlets.forEach((o) => (reset[o] = ""));
+        outlets.forEach((o) => {
+          const area = o.area || o;
+          reset[area] = "";
+        });
         return reset;
       });
       setEntryTotal(0);
@@ -430,24 +475,29 @@ export default function DigitalPayment() {
       setHasEntry(false);
       setEntryValues(() => {
         const reset = {};
-        outlets.forEach((o) => (reset[o] = ""));
+        outlets.forEach((o) => {
+          const area = o.area || o;
+          reset[area] = "";
+        });
         return reset;
       });
       setEntryTotal(0);
     }
   }, [entryDate, rows, outlets]);
+
+  // Always show the latest 6 entries, regardless of date
   const filteredRows = useMemo(() => {
+    let filtered = [...rows];
+    // Optionally, apply additional filters (date range)
     let from = filterFrom ? new Date(filterFrom) : null;
     let to = filterTo ? new Date(filterTo) : null;
-
-    return rows
-      .filter((row) => {
+    if (from && to)
+      filtered = filtered.filter((row) => {
         const d = new Date(row.date);
-        if (from && d < from) return false;
-        if (to && d > to) return false;
-        return true;
-      })
-      .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending (oldest to newest)
+        return d >= from && d <= to;
+      });
+    // Sort by date ascending, then take the last 6
+    return filtered.sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-6);
   }, [rows, filterFrom, filterTo]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
@@ -483,76 +533,72 @@ export default function DigitalPayment() {
     }));
   };
 
-  const handleSaveEntry = (e) => {
+  const handleSaveEntry = async (e) => {
     e.preventDefault();
     if (!entryDate) {
-      alert("Please select a date.");
       return;
     }
 
     // Block if an entry for the date already exists
     if (rows.some((r) => r.date === entryDate)) {
-      alert(`Entry for ${entryDate} already exists and cannot be modified.`);
-      setHasEntry(true);
       return;
     }
 
     const outletAmounts = {};
     outlets.forEach((o) => {
-      outletAmounts[o] = Number(entryValues[o]) || 0;
+      const area = o.area || o;
+      outletAmounts[area] = Number(entryValues[area]) || 0;
     });
 
-    const totalAmount = Object.values(outletAmounts).reduce(
-      (sum, v) => sum + v,
-      0
-    );
-
-    // Check if entry for this date already exists
-    const existingEntryIndex = rows.findIndex((row) => row.date === entryDate);
-
-    if (existingEntryIndex !== -1) {
-      // Update existing entry
-      setRows((prev) => {
-        const updated = [...prev];
-        updated[existingEntryIndex] = {
-          ...updated[existingEntryIndex],
-          outlets: outletAmounts,
-          totalAmount,
-        };
-        return updated;
+    // Save to backend
+    try {
+      const response = await fetch(`${API_URL}/digital-payments/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: entryDate, outlets: outletAmounts }),
       });
-    } else {
-      // Create new entry
-      const newRow = {
-        id: rows.length + 1,
-        date: entryDate,
-        outlets: outletAmounts,
-        totalAmount,
-      };
-      setRows((prev) => [newRow, ...prev]);
+
+      if (!response.ok) {
+        console.error('Failed to add payment');
+        return;
+      }
+
+      // Refetch from backend after adding
+      const res = await fetch(`${API_URL}/digital-payments/all`);
+      const data = await res.json();
+      const newRows = Array.isArray(data) ? data : [];
+      setRows(newRows);
+
+      // Reset form after successful save
+      setEntryDate("");
+      setEntryValues(() => {
+        const reset = {};
+        outlets.forEach((o) => {
+          const area = o.area || o;
+          reset[area] = "";
+        });
+        return reset;
+      });
+      setHasEntry(false);
+      setPage(1);
+    } catch (err) {
+      console.error('Error adding payment:', err);
     }
-
-    setPage(1);
-
-    setEntryDate("");
-    setEntryValues(() => {
-      const reset = {};
-      outlets.forEach((o) => (reset[o] = ""));
-      return reset;
-    });
   };
 
   const totalRecordsLabel = `${currentPageRows.length} of ${rows.length} records`;
 
   const downloadExcel = () => {
     if (!filteredRows || filteredRows.length === 0) {
-      alert("No data available for selected filters");
       return;
     }
 
     const data = filteredRows.map((row) => {
       const obj = { Date: row.date };
-      outlets.forEach((o) => (obj[o] = row.outlets[o] ?? 0));
+      outlets.forEach((o) => {
+        const area = o.area || o;
+        obj[area] = row.outlets[area] ?? 0;
+      });
       obj.Total = row.totalAmount;
       return obj;
     });
@@ -566,6 +612,8 @@ export default function DigitalPayment() {
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8 flex flex-col">
       {/* Header */}
+      {(isAdmin || isViewer) && (
+        <>
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
@@ -695,6 +743,9 @@ export default function DigitalPayment() {
                 <th className="px-4 py-3 whitespace-nowrap text-right">
                   TOTAL AMOUNT
                 </th>
+                {isAdmin && (
+                  <th className="px-4 py-3 whitespace-nowrap text-right">Edit</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -720,8 +771,65 @@ export default function DigitalPayment() {
                     );
                   })}
                   <td className="whitespace-nowrap px-4 py-3 text-right font-semibold">
-                    {formatCurrencyTwoDecimals(row.totalAmount)}
+                    {formatCurrencyTwoDecimals(
+                      typeof row.totalAmount === 'number'
+                        ? row.totalAmount
+                        : Object.values(row.outlets || {}).reduce((sum, v) => sum + (Number(v) || 0), 0)
+                    )}
                   </td>
+                  {isAdmin && (
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      {isAdmin ? (
+                        <button
+                          className="text-blue-600 hover:underline text-xs font-medium"
+                          onClick={() => handleEditClick(row)}
+                        >
+                          Edit
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 text-xs font-medium flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="inline h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0-1.104.896-2 2-2s2 .896 2 2v2m-4 0v2m0 0h4m-4 0H8m4-6V7a4 4 0 10-8 0v4a4 4 0 008 0z" /></svg>
+                          Locked
+                        </span>
+                      )}
+                    </td>
+                  )}
+                      {/* Edit Modal */}
+                      {editModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+                          <div className="bg-white rounded-xl shadow-lg p-6 min-w-[320px] max-w-full">
+                            <h2 className="text-lg font-semibold mb-4">Edit Digital Payment ({formatDisplayDate(editRow.date)})</h2>
+                            <div className="space-y-3">
+                              {outlets.map((outlet) => {
+                                const area = outlet.area || outlet;
+                                return (
+                                  <div key={area} className="flex items-center gap-2">
+                                    <label className="w-32 text-xs font-medium text-gray-700">{area.toUpperCase()}</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={editValues[area] || ""}
+                                      onChange={e => handleEditValueChange(area, e.target.value)}
+                                      className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <div className="flex justify-end gap-2 mt-6">
+                              <button
+                                onClick={handleEditCancel}
+                                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-300"
+                              >Cancel</button>
+                              <button
+                                onClick={handleEditSave}
+                                className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600"
+                              >Save</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                 </tr>
               ))}
               {/* Grand Total Row */}
@@ -734,7 +842,18 @@ export default function DigitalPayment() {
                     <td key={area} className="whitespace-nowrap px-4 py-3">{formatCurrencyTwoDecimals(total)}</td>
                   );
                 })}
-                <td className="whitespace-nowrap px-4 py-3 text-right">{formatCurrencyTwoDecimals(rows.reduce((sum, r) => sum + (r.totalAmount || 0), 0))}</td>
+                <td className="whitespace-nowrap px-4 py-3 text-right">
+                  {formatCurrencyTwoDecimals(
+                    rows.reduce(
+                      (sum, r) => sum + (
+                        typeof r.totalAmount === 'number'
+                          ? r.totalAmount
+                          : Object.values(r.outlets || {}).reduce((s, v) => s + (Number(v) || 0), 0)
+                      ),
+                      0
+                    )
+                  )}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -770,8 +889,11 @@ export default function DigitalPayment() {
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Entry Card */}
+      {(isAdmin || isDataAgent) && (
       <div className="mt-8 rounded-2xl bg-eggWhite p-5 shadow-sm md:p-6">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100">
@@ -809,7 +931,15 @@ export default function DigitalPayment() {
               {hasEntry && (
                 <div className="mt-2 flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <div className="text-xs font-medium text-green-700">Entry ( ₹ {entryTotal}) • Locked</div>
+                  <div className="text-xs font-medium text-green-700">
+                    Entry (
+                    {formatCurrencyTwoDecimals(
+                      entryTotal && entryTotal > 0
+                        ? entryTotal
+                        : Object.values(entryValues || {}).reduce((sum, v) => sum + (Number(v) || 0), 0)
+                    )}
+                    ) • Locked
+                  </div>
                 </div>
               )}
               {isEntryCalendarOpen && (
@@ -826,7 +956,10 @@ export default function DigitalPayment() {
                       } else {
                         setEntryValues(() => {
                           const reset = {};
-                          outlets.forEach((o) => (reset[o] = ""));
+                          outlets.forEach((o) => {
+                            const area = o.area || o;
+                            reset[area] = "";
+                          });
                           return reset;
                         });
                       }
@@ -858,7 +991,7 @@ export default function DigitalPayment() {
                       type="number"
                       min="0"
                       step="0.01"
-                      value={entryValues[area]}
+                      value={entryValues[area] || ""}
                       onChange={(e) =>
                         handleEntryChange(area, e.target.value)
                       }
@@ -886,6 +1019,7 @@ export default function DigitalPayment() {
           </div>
         </form>
       </div>
+      )}
     </div>
   );
 }

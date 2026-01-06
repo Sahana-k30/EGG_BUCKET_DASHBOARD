@@ -10,10 +10,10 @@ function formatDisplayDate(iso) {
   });
 }
 
-export default function DailyTable({rows, outlets = []}) {
+export default function DailyTable({rows, outlets = [], onEdit}) {
   // Build outlet names from objects or use defaults
   const outletNames = Array.isArray(outlets) && outlets.length > 0 
-    ? outlets.map(o => o.area || o)
+    ? outlets.map(o => (typeof o === 'string' ? o : o.area || o.name || o.id || JSON.stringify(o)))
     : ["AECS Layout", "Bandepalya", "Hosa Road", "Singasandra", "Kudlu Gate"];
 
   // Calculate totals dynamically based on outlets
@@ -38,11 +38,11 @@ export default function DailyTable({rows, outlets = []}) {
           <thead className="bg-gray-50">
             <tr className="text-left text-xs font-semibold text-gray-500">
               <th className="min-w-[130px] px-4 py-3">Date</th>
-              {outletNames.map((outlet) => {
+              {outletNames.map((outlet, i) => {
                 const isActive = isOutletActive(outlet);
                 return (
-                  <th key={outlet} className="px-4 py-3 whitespace-nowrap">
-                    {outlet.toUpperCase()}
+                  <th key={String(outlet) + '-' + i} className="px-4 py-3 whitespace-nowrap">
+                    {String(outlet).toUpperCase()}
                     {!isActive && <span className="text-red-500 text-[10px] block">(Inactive)</span>}
                   </th>
                 );
@@ -50,12 +50,19 @@ export default function DailyTable({rows, outlets = []}) {
               <th className="px-4 py-3 whitespace-nowrap text-right">
                 Total
               </th>
+              {/* Edit column for admin */}
+              {typeof window !== 'undefined' && localStorage.getItem('user') && (() => {
+                const user = JSON.parse(localStorage.getItem('user'));
+                const isAdmin = user && (user.role === "Admin" || (Array.isArray(user.roles) && user.roles.includes("admin")));
+                if (isAdmin && typeof onEdit === 'function') return <th className="px-4 py-3">Edit</th>;
+                return null;
+              })()}
             </tr>
           </thead>
           <tbody>
             {rows.map((row, idx) => (
               <tr
-                key={idx}
+                key={row.date ? String(row.date) + '-' + idx : idx}
                 className={`text-xs text-gray-700 md:text-sm ${
                   idx % 2 === 0 ? "bg-white" : "bg-gray-50/60"
                 }`}
@@ -63,8 +70,8 @@ export default function DailyTable({rows, outlets = []}) {
                 <td className="whitespace-nowrap px-4 py-3">
                   {formatDisplayDate(row.date)}
                 </td>
-                {outletNames.map((outlet) => (
-                  <td key={outlet} className="whitespace-nowrap px-4 py-3">
+                {outletNames.map((outlet, j) => (
+                  <td key={String(outlet) + '-' + j} className="whitespace-nowrap px-4 py-3">
                     ₹{
                         row.outlets
                           ? row.outlets[outlet] ?? 0
@@ -75,14 +82,27 @@ export default function DailyTable({rows, outlets = []}) {
                 <td className="whitespace-nowrap px-4 py-3 text-right font-semibold text-orange-600">
                   ₹{row.total}
                 </td>
+                {/* Edit button for admin */}
+                {typeof window !== 'undefined' && localStorage.getItem('user') && (() => {
+                  const user = JSON.parse(localStorage.getItem('user'));
+                  const isAdmin = user && (user.role === "Admin" || (Array.isArray(user.roles) && user.roles.includes("admin")));
+                  if (isAdmin && typeof onEdit === 'function') {
+                    return (
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <button className="text-blue-600 hover:underline text-xs font-medium" onClick={() => onEdit(row)}>Edit</button>
+                      </td>
+                    );
+                  }
+                  return null;
+                })()}
               </tr>
             ))}
 
             {/* ⭐ COLUMN TOTAL ROW (GRAND TOTAL) */}
             <tr className="bg-orange-50 font-semibold text-orange-700">
               <td className="whitespace-nowrap px-4 py-3">Grand Total</td>
-              {outletNames.map((outlet) => (
-                <td key={outlet} className="whitespace-nowrap px-4 py-3">
+              {outletNames.map((outlet, i) => (
+                <td key={String(outlet) + '-total-' + i} className="whitespace-nowrap px-4 py-3">
                   ₹{totals[outlet]}
                 </td>
               ))}

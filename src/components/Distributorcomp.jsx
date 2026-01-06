@@ -1,4 +1,6 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   faUser,
   faLock,
@@ -13,13 +15,15 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 const Distributorcomp = () => {
+  const location = useLocation();
+  const user = location.state?.user;
   const [form, setForm] = useState({
-    fullName: "",
-    phone: "",
-    username: "",
+    fullName: user?.fullName || "",
+    phone: user?.phone || "",
+    username: user?.username || "",
     password: "",
     confirmPassword: "",
-    roles: [],
+    roles: user?.roles || [],
   });
 
   const roles = [
@@ -49,72 +53,74 @@ const Distributorcomp = () => {
     },
     {
       name: "NECC Rate",
-      value:"neccrate",
+      value: "neccrate",
       icon: faIndianRupeeSign,
       desc: "Average amount of eggs.",
     },
     {
-      name: "Daily Damages",
-      value:"dailydamages",
-      icon: faArrowsSplitUpAndLeft,
-      desc: "total eggs damaged.",
+      name: "Daily Sales",
+      value: "daily_sales",
+      icon: faChartLine,
+      desc: "Manage daily egg sales records.",
+    },
+    // ...existing code...
+    {
+      name: "Viewer",
+      value: "viewer",
+      icon: faLock,
+      desc: "Read-only access to all data.",
     },
   ];
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Basic validation
     if (!form.fullName || !form.username) {
-      alert("Please provide full name and username.");
       return;
     }
 
     if (form.password !== form.confirmPassword) {
-      alert("Passwords do not match!");
       return;
     }
 
-    const existing = JSON.parse(localStorage.getItem("users")) || [];
+    try {
+      // Ensure roles is always an array and only includes 'dataagent' if selected
+      let rolesArr = Array.isArray(form.roles) ? form.roles : String(form.roles || "").split(",").map(r => r.trim()).filter(Boolean);
+      // If only 'viewer' is selected, do not add 'dataagent'
+      if (rolesArr.length === 1 && rolesArr[0] === "viewer") {
+        rolesArr = ["viewer"];
+      } else {
+        if (!rolesArr.includes("dataagent")) rolesArr.push("dataagent");
+        rolesArr = Array.from(new Set(rolesArr)); // Remove duplicates
+      }
+      const res = await fetch(`${API_URL}/admin/add-user`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: form.fullName.trim(),
+          phone: form.phone?.trim() || "",
+          username: form.username.trim(),
+          password: form.password,
+          fromDistributorPage: true,
+          roles: rolesArr
+        }),
+      });
 
-    // Normalize username for uniqueness (case-insensitive)
-    const normalizedUsername = (form.username || "").trim().toLowerCase();
-    if (existing.some((u) => (u.username || "").trim().toLowerCase() === normalizedUsername)) {
-      alert("Username already exists!");
-      return;
+      const data = await res.json();
+      
+      if (res.ok) {
+        setForm({
+          fullName: "",
+          phone: "",
+          username: "",
+          password: "",
+          confirmPassword: "",
+          roles: [],
+        });
+      } else {
+        console.error(data.error || "Failed to add distributor");
+      }
+    } catch (err) {
+      console.error("Network error:", err);
     }
-
-    // Prevent duplicate phone (if provided)
-    if (form.phone && existing.some((u) => u.phone === form.phone)) {
-      alert("Phone number already in use!");
-      return;
-    }
-
-    // Generate stable unique id
-    const id = (typeof crypto !== "undefined" && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : `user-${Date.now()}`;
-
-    const newUser = {
-      id,
-      fullName: form.fullName.trim(),
-      phone: form.phone?.trim() || "",
-      username: normalizedUsername,
-      roles: Array.isArray(form.roles) ? form.roles : [],
-      // NOTE: passwords are not persisted in this demo app for simplicity/security
-    };
-
-    const updated = [...existing, newUser];
-    localStorage.setItem("users", JSON.stringify(updated));
-
-    alert("Distributor added successfully!");
-
-    setForm({
-      fullName: "",
-      phone: "",
-      username: "",
-      password: "",
-      confirmPassword: "",
-      roles: [],
-    });
   };
 
   return (

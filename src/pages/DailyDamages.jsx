@@ -1,6 +1,8 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import { useState, useEffect, useRef } from "react";
 import { useDamage } from "../context/DamageContext";
 import * as XLSX from "xlsx";
+import { getRoleFlags } from "../utils/role";
 
 const MONTHS = [
   "January",
@@ -260,7 +262,106 @@ function BaseCalendar({ rows, selectedDate, onSelectDate, showDots }) {
 }
 
 export default function DailyDamages() {
-  const { damages, addDamage, remapDamagesForOutlets } = useDamage();
+    // Get user from localStorage and check admin
+    const {isAdmin, isViewer, isDataAgent}= getRoleFlags();
+
+    // Edit modal state
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editRow, setEditRow] = useState({});
+    const [editValues, setEditValues] = useState({});
+
+    // Open modal and set values for editing
+    const handleEditClick = (row) => {
+      // Ensure row.id is present
+      const fullRow = { ...row };
+      if (!row.id) {
+        // Try to find id from damages context
+        const found = damages.find(d => d.date === row.date);
+        if (found && found.id) fullRow.id = found.id;
+      }
+      setEditRow(fullRow);
+      const vals = {};
+      outlets.forEach((name) => {
+        vals[name] = row[name] ?? 0;
+      });
+      setEditValues(vals);
+      setEditModalOpen(true);
+    };
+
+    // Handle value change in modal
+    const handleEditValueChange = (name, value) => {
+      setEditValues((prev) => ({ ...prev, [name]: Number(value) }));
+    };
+
+    // Cancel edit
+    const handleEditCancel = () => {
+      setEditModalOpen(false);
+      setEditRow({});
+      setEditValues({});
+    };
+
+    // Save edit
+    const handleEditSave = async () => {
+      console.log("Save clicked", editRow);
+      if (!editRow.id) {
+        alert("No ID found for entry. Cannot update.");
+        return;
+      }
+      const updatedDamages = { ...editValues };
+      const total = outlets.reduce((s, name) => s + Number(updatedDamages[name] || 0), 0);
+      try {
+        console.log("PATCH to", `${API_URL}/daily-damage/${editRow.id}`);
+        const response = await fetch(`${API_URL}/daily-damage/${editRow.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: editRow.date, damages: updatedDamages, total }),
+        });
+        console.log("PATCH response", response);
+        if (!response.ok) {
+          alert("Failed to update entry: " + response.status);
+          return;
+        }
+        // Refetch damages after update
+        const res = await fetch(`${API_URL}/daily-damage/all`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setDamages(data.map(d => ({
+            id: d.id,
+            date: d.date,
+            ...((d.damages && typeof d.damages === 'object') ? d.damages : {}),
+            total: d.total || 0
+          })));
+        }
+        setEditModalOpen(false);
+        setEditRow({});
+        setEditValues({});
+      } catch (err) {
+        alert("Error updating entry: " + err.message);
+        console.error("PATCH error", err);
+      }
+    };
+  const { damages, setDamages, addDamage, remapDamagesForOutlets } = useDamage();
+    // Fetch damages from backend on mount (after login)
+    useEffect(() => {
+      const fetchDamages = async () => {
+        try {
+          const res = await fetch(`${API_URL}/daily-damage/all`);
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            // Always include id in damages context
+            setDamages(data.map(d => ({
+              id: d.id,
+              date: d.date,
+              ...((d.damages && typeof d.damages === 'object') ? d.damages : {}),
+              total: d.total || 0
+            })));
+          }
+        } catch (err) {
+          // ignore fetch error
+        }
+      };
+      fetchDamages();
+    }, [setDamages]);
   const [isFromCalendarOpen, setIsFromCalendarOpen] = useState(false);
   const [isToCalendarOpen, setIsToCalendarOpen] = useState(false);
 
@@ -293,7 +394,6 @@ export default function DailyDamages() {
       outlets.forEach((o) => (f[o] = 0));
       return f;
     });
-    remapDamagesForOutlets(outlets);
   }, [outlets]);
 
   useEffect(() => {
@@ -370,7 +470,7 @@ export default function DailyDamages() {
     setIsEntryCalendarOpen(false);
   };
 
-  const save = () => {
+  const save = async () => {
     const total = outlets.reduce((s, name) => s + Number(form[name] || 0), 0);
     const success = addDamage({
       date: entryDate,
@@ -381,17 +481,27 @@ export default function DailyDamages() {
       alert(`Entry for ${entryDate} already exists and cannot be modified.`);
       return;
     }
+    // Save to backend for persistence
+    try {
+      await fetch(`${API_URL}/daily-damage/add-daily-damage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ date: entryDate, damages: { ...form }, total }),
+      });
+    } catch (err) {
+      // Ignore backend error for now, since local state is updated
+    }
     alert(`Saved entry for ${entryDate}`);
     setHasEntry(true);
     setEntryTotal(total);
   };
 
-  const filteredData = damages
-    .filter((d) => {
-      if (!fromDate || !toDate) return true;
-      return d.date >= fromDate && d.date <= toDate;
-    })
-    .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending (oldest to newest)
+  // Always show the latest 6 entries, sorted descending by date
+  // Always show the latest 6 entries, sorted ascending by date (past to present), and remove duplicates by date
+  const sortedUnique = Array.from(
+    new Map([...damages].sort((a, b) => new Date(a.date) - new Date(b.date)).map(d => [d.date, d])).values()
+  );
+  const filteredData = sortedUnique.slice(-6);
 
   const downloadExcel = () => {
     if (filteredData.length === 0) {
@@ -407,6 +517,8 @@ export default function DailyDamages() {
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8 flex flex-col">
       {/* Header */}
+      {(isAdmin || isViewer) && (
+        <>
       <div className="max-w-7xl mx-auto w-full mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">
@@ -511,9 +623,56 @@ export default function DailyDamages() {
                   <td className="p-3 text-center font-bold text-orange-600">
                     {typeof d.total === 'number' ? d.total : rowTotal}
                   </td>
+                  {isAdmin && (
+                    <td className="p-3 text-center">
+                      <button
+                        className="text-blue-600 hover:underline text-xs font-medium"
+                        onClick={() => handleEditClick(d)}
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  )}
                 </tr>
               );
             })}
+            {/* Edit Modal */}
+            {editModalOpen && (
+              <tr>
+                <td colSpan={outlets.length + 2}>
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+                    <div className="bg-white rounded-xl shadow-lg p-6 min-w-[320px] max-w-full">
+                      <h2 className="text-lg font-semibold mb-4">Edit Daily Damage ({formatDateDisplay(editRow.date)})</h2>
+                      <div className="space-y-3">
+                        {outlets.map((name) => (
+                          <div key={name} className="flex items-center gap-2">
+                            <label className="w-32 text-xs font-medium text-gray-700">{name}</label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editValues[name] ?? 0}
+                              onChange={e => handleEditValueChange(name, e.target.value)}
+                              className="flex-1 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex justify-end gap-2 mt-6">
+                        <button
+                          onClick={handleEditCancel}
+                          className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-xs font-medium hover:bg-gray-300"
+                        >Cancel</button>
+                        <button
+                          onClick={handleEditSave}
+                          className="px-4 py-2 rounded-lg bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600"
+                        >Save</button>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
             {/* Grand Total Row */}
             <tr className="bg-orange-50 font-semibold text-orange-700">
               <td className="p-3 text-left">Grand Total</td>
@@ -528,10 +687,12 @@ export default function DailyDamages() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
 
       {/* Download Report section removed from center */}
-
-      {/* Damage Entry – now matches Digital Payment Entry UI exactly */}
+      {(isAdmin || isDataAgent) && (
+      
       <div className="mt-8 rounded-2xl bg-eggWhite p-5 shadow-sm md:p-6">
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100">
@@ -638,6 +799,8 @@ export default function DailyDamages() {
           </div>
         </div>
       </div>
+      )}
     </div>
+            
   );
 }
