@@ -465,11 +465,16 @@ const Reports = () => {
                 onChange={(e) => setSelectedOutlet(e.target.value)}
                 disabled={loading}
               >
-                {outlets.map(outlet => (
-                  <option key={outlet.id} value={outlet.id}>
-                    {outlet.name}
-                  </option>
-                ))}
+                {outlets
+                  .filter(outlet => {
+                    const name = outlet.name?.toLowerCase?.() || '';
+                    return name !== 'hsr layout' && name !== 'kr market';
+                  })
+                  .map(outlet => (
+                    <option key={outlet.id} value={outlet.id}>
+                      {outlet.name}
+                    </option>
+                  ))}
               </select>
             </div>
 

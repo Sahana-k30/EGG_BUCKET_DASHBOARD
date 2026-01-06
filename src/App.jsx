@@ -87,8 +87,6 @@ function App() {
               path="/admin/reports"
               element={<ProtectedRoute element={<AdminLayoutWithPanel><Reports /></AdminLayoutWithPanel>} requiredRole={null} />}
             />
-            {/* VIEWER */}
-            <Route path="/dashboard" element={<ViewerDashboard />} />
 
             {/* DATA AGENT */}
             <Route path="/dashboard" element={<DataAgentDashboard />} />

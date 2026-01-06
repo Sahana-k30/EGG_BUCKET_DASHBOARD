@@ -54,9 +54,3 @@ app.get("/", (req, res) => {
   if (req.path.startsWith("/api")) return res.status(404).json({ error: "API route not found" });
   res.sendFile(path.join(frontendPath, "index.html"));
 });
-
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Backend running at http://localhost:${PORT}`);
-});

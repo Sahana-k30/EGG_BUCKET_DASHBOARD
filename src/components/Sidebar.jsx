@@ -116,35 +116,19 @@ export default function Sidebar() {
               <FontAwesomeIcon icon={faTableCells} />
               {open && "Viewer Data"}
             </Link>
-            <Link to="/admin/damages" className={linkClass("/admin/damages")}> 
-              <FontAwesomeIcon icon={faExclamationTriangle} />
-              {open && "Daily Damages"}
-            </Link>
-            <Link to="/admin/neccrate" className={linkClass("/admin/neccrate")}> 
-              <FontAwesomeIcon icon={faEgg} />
-              {open && "NECC Rate"}
-            </Link>
-            <Link to="/admin/dailysales" className={linkClass("/admin/dailysales")}> 
-              <FontAwesomeIcon icon={faIndianRupeeSign} />
-              {open && "Daily Sales"}
-            </Link>
-            <Link to="/admin/digital-payments" className={linkClass("/admin/digital-payments")}> 
-              <FontAwesomeIcon icon={faWallet} />
-              {open && "Digital Payments"}
-            </Link>
-            <Link to="/admin/cash-payments" className={linkClass("/admin/cash-payments")}> 
-              <FontAwesomeIcon icon={faMoneyBillWave} />
-              {open && "Cash Payments"}
+            <Link to="/admin/reports" className={linkClass("/admin/reports")}> 
+              <FontAwesomeIcon icon={faChartLine} />
+              {open && "Reports"}
             </Link>
           </>
         )}
-        {(isAdmin || viewerRoles.includes("distribution")) && (
+        {dataAgentRoles && dataAgentRoles.includes("distribution") && !isAdmin && (
           <Link to="/admin/distribution" className={linkClass("/admin/distribution")}> 
             <FontAwesomeIcon icon={faUserPlus} />
             {open && "Add Data Agent"}
           </Link>
         )}
-        {(isAdmin || viewerRoles.includes("outlets")) && (
+        {dataAgentRoles && dataAgentRoles.includes("outlets") && !isAdmin && (
           <Link to="/admin/outlets" className={linkClass("/admin/outlets")}> 
             <FontAwesomeIcon icon={faStore} />
             {open && "Outlets"}
@@ -156,11 +140,7 @@ export default function Sidebar() {
             {open && "Reports"}
           </Link>
         )}
-        {isAdmin && (
-          <Link to="/admin/users" className={linkClass("/admin/users")}> 
-            <FontAwesomeIcon icon={faUsers} />
-            {open && "Users"}
-          </Link>
+        {/* Removed duplicate Users link for admin */}
         {!isAdmin && !isViewer && (
           <>
             {(dataAgentRoles.includes("dashboard")) && (
@@ -205,12 +185,7 @@ export default function Sidebar() {
                 {open && "Add Data Agent"}
               </Link>
             )}
-            {(dataAgentRoles.includes("outlets")) && (
-              <Link to="/admin/outlets" className={linkClass("/admin/outlets")}> 
-                <FontAwesomeIcon icon={faStore} />
-                {open && "Outlets"}
-              </Link>
-            )}
+            {/* Removed duplicate Outlets link for data agents */}
           </>
         )}
       </nav>
