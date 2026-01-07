@@ -517,7 +517,7 @@ export default function DailyDamages() {
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8 flex flex-col">
       {/* Header */}
-      {(isAdmin || isViewer) && (
+      {(isAdmin || isViewer || isDataAgent) && (
         <>
       <div className="max-w-7xl mx-auto w-full mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
@@ -605,6 +605,7 @@ export default function DailyDamages() {
                 <th key={name} className="p-3 text-center">{name}</th>
               ))}
               <th className="p-3 text-center font-semibold">Total</th>
+              {isAdmin && <th className="p-3 text-center">Edit</th>}
             </tr>
           </thead>
           <tbody>

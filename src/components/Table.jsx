@@ -226,7 +226,9 @@ export default function NeccTableSection({rows,
   fromDate,
   toDate,
   setFromDate,
-  setToDate,}) {
+  setToDate,
+  onEdit,
+  showEditColumn}) {
   
     const downloadCSV = (data) => {
       if (data.length === 0) {
@@ -348,13 +350,13 @@ export default function NeccTableSection({rows,
             <th className="py-3 px-4">Date</th>
             <th className="py-3 px-4">NECC Rate</th>
             <th className="py-3 px-4">Remarks</th>
+            {showEditColumn && <th className="py-3 px-4">Edit</th>}
           </tr>
         </thead>
-
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan="3" className="text-center py-6 text-gray-500">
+              <td colSpan={showEditColumn ? 4 : 3} className="text-center py-6 text-gray-500">
                 No data available
               </td>
             </tr>
@@ -364,18 +366,11 @@ export default function NeccTableSection({rows,
                 <td className="py-3 px-4">{row.date}</td>
                 <td className="py-3 px-4">{row.rate}</td>
                 <td className="py-3 px-4">{row.remarks}</td>
-                {typeof window !== 'undefined' && localStorage.getItem('user') && (() => {
-                  const user = JSON.parse(localStorage.getItem('user'));
-                  const isAdmin = user && (user.role === "Admin" || (Array.isArray(user.roles) && user.roles.includes("admin")));
-                  if (isAdmin && typeof window.onNeccEdit === 'function') {
-                    return (
-                      <td className="py-3 px-4">
-                        <button className="text-blue-600 hover:underline text-xs font-medium" onClick={() => window.onNeccEdit(row)}>Edit</button>
-                      </td>
-                    );
-                  }
-                  return null;
-                })()}
+                {showEditColumn && typeof onEdit === 'function' && (
+                  <td className="py-3 px-4">
+                    <button className="text-blue-600 hover:underline text-xs font-medium" onClick={() => onEdit(row)}>Edit</button>
+                  </td>
+                )}
               </tr>
             ))
           )}

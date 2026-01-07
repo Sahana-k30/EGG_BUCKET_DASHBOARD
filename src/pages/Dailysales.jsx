@@ -155,10 +155,10 @@ const Dailysales = () => {
         <Topbar />
 
         {/* ================= HEADER ================= */}
-        {!isDataAgent && <Dailyheader dailySalesData={rows} />}
+        {(isAdmin || isViewer || isDataAgent) && <Dailyheader dailySalesData={rows} />}
 
-        {/* ================= TABLE (ADMIN + VIEWER) ================= */}
-        {!isDataAgent && (
+        {/* ================= TABLE (ADMIN + VIEWER + DATA AGENT) ================= */}
+        {(isAdmin || isViewer || isDataAgent) && (
           <DailyTable
             rows={sortedRows}
             outlets={outlets}

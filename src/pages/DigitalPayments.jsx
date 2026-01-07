@@ -362,17 +362,22 @@ export default function DigitalPayments() {
   };
 
   const [rows, setRows] = useState([]);
-  const [outlets, setOutlets] = useState([]);
+  const [outlets, setOutlets] = useState(DEFAULT_OUTLETS);
 
   useEffect(() => {
     const loadOutletsFromLocal = () => {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const savedOutlets = JSON.parse(saved);
-        setOutlets(Array.isArray(savedOutlets) ? savedOutlets : []);
+        if (Array.isArray(savedOutlets) && savedOutlets.length > 0) {
+          setOutlets(savedOutlets);
+        } else {
+          setOutlets(DEFAULT_OUTLETS);
+        }
+      } else {
+        setOutlets(DEFAULT_OUTLETS);
       }
     };
-
     loadOutletsFromLocal();
   }, []);
 
@@ -612,7 +617,7 @@ export default function DigitalPayments() {
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8 flex flex-col">
       {/* Header */}
-      {(isAdmin || isViewer) && (
+      {(isAdmin || isViewer || isDataAgent) && (
         <>
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>

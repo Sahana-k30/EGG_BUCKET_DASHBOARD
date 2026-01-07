@@ -132,6 +132,10 @@ export default function Sidebar() {
               <FontAwesomeIcon icon={faMoneyBillWave} />
               {open && "Cash Payments"}
             </Link>
+              <Link to="/admin/reports" className={linkClass("/admin/reports")}> 
+            <FontAwesomeIcon icon={faChartLine} />
+            {open && "Reports"}
+          </Link>
           </>
         )}
         {dataAgentRoles && dataAgentRoles.includes("distribution") && !isAdmin && (

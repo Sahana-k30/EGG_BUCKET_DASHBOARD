@@ -11,9 +11,13 @@ function formatDisplayDate(iso) {
 }
 
 export default function DailyTable({rows, outlets = [], onEdit}) {
+
   // Build outlet names from objects or use defaults
   const outletNames = Array.isArray(outlets) && outlets.length > 0 
-    ? outlets.map(o => (typeof o === 'string' ? o : o.area || o.name || o.id || JSON.stringify(o)))
+    ? outlets.map(o => {
+        let name = typeof o === 'string' ? o : o.area || o.name || o.id || JSON.stringify(o);
+        return name.replace(/\(Inactive\)/gi, '').trim();
+      })
     : ["AECS Layout", "Bandepalya", "Hosa Road", "Singasandra", "Kudlu Gate"];
 
   // Calculate totals dynamically based on outlets
@@ -24,11 +28,12 @@ export default function DailyTable({rows, outlets = [], onEdit}) {
 
   const grandTotal = Object.values(totals).reduce((s, v) => s + v, 0);
 
-  // Check if outlet is active
+  // Check if outlet is active: default to active if status is missing
   const isOutletActive = (outletName) => {
     if (!Array.isArray(outlets) || outlets.length === 0) return true;
     const outletObj = outlets.find(o => o.area === outletName);
-    return !outletObj || outletObj.status === "Active";
+    if (!outletObj || typeof outletObj.status === 'undefined') return true;
+    return outletObj.status === "Active";
   };
 
   return (
@@ -39,11 +44,9 @@ export default function DailyTable({rows, outlets = [], onEdit}) {
             <tr className="text-left text-xs font-semibold text-gray-500">
               <th className="min-w-[130px] px-4 py-3">Date</th>
               {outletNames.map((outlet, i) => {
-                const isActive = isOutletActive(outlet);
                 return (
                   <th key={String(outlet) + '-' + i} className="px-4 py-3 whitespace-nowrap">
                     {String(outlet).toUpperCase()}
-                    {!isActive && <span className="text-red-500 text-[10px] block">(Inactive)</span>}
                   </th>
                 );
               })}

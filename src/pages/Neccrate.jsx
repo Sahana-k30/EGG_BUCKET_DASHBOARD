@@ -125,8 +125,8 @@ const Neccrate = () => {
     <div className="bg-[#F8F6F2] min-h-screen p-6">
       <Topbar />
 
-      {/* ================= TABLE (ADMIN + VIEWER) ================= */}
-      {!isDataAgent && (
+      {/* ================= TABLE (ADMIN + VIEWER + DATA AGENT) ================= */}
+      {(isAdmin || isViewer || isDataAgent) && (
         <Table
           rows={filteredRows}
           fromDate={fromDate}
@@ -134,11 +134,12 @@ const Neccrate = () => {
           setFromDate={setFromDate}
           setToDate={setToDate}
           onEdit={isAdmin ? handleEditClick : null}
+          showEditColumn={isAdmin} // Explicitly show Edit column for admin
         />
       )}
 
-      {/* ================= ANALYTICS (ADMIN + VIEWER) ================= */}
-      {!isDataAgent && <Rateanalytics />}
+      {/* ================= ANALYTICS (ADMIN + VIEWER + DATA AGENT) ================= */}
+      {(isAdmin || isViewer || isDataAgent) && <Rateanalytics />}
 
       {/* ================= ENTRY FORM (ADMIN + DATA AGENT) ================= */}
       {!isViewer && (
