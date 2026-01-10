@@ -33,6 +33,15 @@ const Dailysales = () => {
 
   const [rows, setRows] = useState([]);
   const [outlets, setOutlets] = useState(DEFAULT_OUTLETS);
+  // Filtered outlets for Data Agent: only show active
+  // Robust filter: Data Agent sees only active outlets (object with status 'Active' or string)
+  const filteredOutlets = isDataAgent && Array.isArray(outlets)
+    ? outlets.filter(o => {
+        if (typeof o === 'string') return true; // fallback: all strings are active
+        if (typeof o === 'object' && o.status) return o.status === 'Active';
+        return true;
+      })
+    : outlets;
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
 
@@ -250,7 +259,7 @@ const Dailysales = () => {
               addrow={addrow}
               blockeddates={rows.filter((r) => r.locked).map((r) => r.date)}
               rows={rows}
-              outlets={outlets}
+              outlets={filteredOutlets}
             />
           </div>
         )}
@@ -271,7 +280,7 @@ const Dailysales = () => {
         {(isAdmin || isViewer || isDataAgent) && (
           <DailyTable
             rows={filteredRows}
-            outlets={outlets}
+            outlets={filteredOutlets}
             onEdit={isAdmin ? handleEditClick : null}
           />
         )}

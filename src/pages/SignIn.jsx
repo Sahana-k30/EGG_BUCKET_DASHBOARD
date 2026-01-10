@@ -66,17 +66,16 @@ export default function SignIn() {
       } else if (data.user.role === "Viewer") {
         navigate("/viewer/data");
       } else {
-        navigate("/dashboard");
         // DataAgent: redirect to first allowed feature
         const roles = Array.isArray(data.user.roles) ? data.user.roles : (data.user.role ? [data.user.role] : []);
         // Map roles to paths in order of preference
         const roleToPath = {
-          daily_sales: "/admin/dailysales",
-          outlets: "/admin/outlets",
-          digital_payments: "/admin/digital-payments",
+          daily_damages: "/admin/damages",
           cash_payments: "/admin/cash-payments",
-          neccrate: "/admin/neccrate",
-          daily_damages: "/admin/damages"
+          daily_sales: "/admin/dailysales",
+          digital_payments: "/admin/digital-payments",
+          outlets: "/admin/outlets",
+          neccrate: "/admin/neccrate"
         };
         let firstPath = null;
         for (const r of Object.keys(roleToPath)) {
@@ -85,7 +84,7 @@ export default function SignIn() {
             break;
           }
         }
-        navigate(firstPath || "/signin");
+        navigate(firstPath || "/dashboard");
       }
 
     } catch (err) {
