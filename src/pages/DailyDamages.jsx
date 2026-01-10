@@ -510,8 +510,8 @@ export default function DailyDamages() {
     );
 
     if (!fromDate && !toDate) {
-      // Show last 6 entries if no filter
-      return sortedUnique.slice(-6);
+      // Show all data if no filter
+      return sortedUnique;
     }
 
     let filtered = sortedUnique;
@@ -542,6 +542,109 @@ export default function DailyDamages() {
 
   return (
     <div className="min-h-screen bg-eggBg px-4 py-6 md:px-8 flex flex-col">
+      {/* Entry Section - moved to top */}
+      {(isAdmin || isDataAgent) && (
+        <div className="mb-8 rounded-2xl bg-eggWhite p-5 shadow-sm md:p-6">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100">
+              <DamageEntryIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 md:text-lg">
+                Daily Damages Entry
+              </h2>
+              <p className="text-xs text-gray-500 md:text-sm">
+                Add new egg damage amounts for each outlet.
+              </p>
+            </div>
+          </div>
+          <div className="space-y-5">
+            {/* Select Date */}
+            <div className="grid gap-4 md:grid-cols-[160px,1fr] md:items-center">
+              <label className="text-xs font-medium text-gray-700 md:text-sm">
+                Select Date
+              </label>
+              <div className="relative w-full" ref={entryCalendarRef}>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsEntryCalendarOpen((open) => !open)}
+                    className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-eggBg px-3 py-2 pr-10 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-400 md:text-sm"
+                  >
+                    <span>
+                      {entryDate ? formatDateDMY(entryDate) : "dd-mm-yyyy"}
+                    </span>
+                  </button>
+                  <CalendarIcon className="h-4 w-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                {hasEntry && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    <div className="text-xs font-medium text-green-700">
+                      Entry ({entryTotal}) • Locked
+                    </div>
+                  </div>
+                )}
+                {isEntryCalendarOpen && (
+                  <div className="absolute right-0 top-full z-30 mt-2">
+                    <BaseCalendar
+                      rows={damages}
+                      selectedDate={entryDate}
+                      onSelectDate={handleEntryDateSelect}
+                      showDots={true}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Outlet inputs */}
+            <div className="grid gap-3 md:grid-cols-5">
+              {outlets.map((outlet) => (
+                <div key={outlet} className="space-y-1">
+                  <p className="text-xs font-medium text-gray-600">
+                    {outlet}
+                  </p>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={form[outlet] ?? 0}
+                      onChange={(e) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          [outlet]: Number(e.target.value),
+                        }))
+                      }
+                      disabled={hasEntry}
+                      className={`w-full rounded-xl border border-gray-200 bg-eggBg px-3 py-2 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-400 md:text-sm ${
+                        hasEntry ? "bg-gray-50 cursor-not-allowed" : ""
+                      }`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Save button */}
+            <div className="flex flex-col items-center gap-2 pt-4">
+              <button
+                type="button"
+                onClick={save}
+                disabled={hasEntry}
+                className={`inline-flex items-center justify-center rounded-2xl px-6 py-2.5 text-sm font-semibold text-white shadow-md ${
+                  hasEntry
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-orange-500 hover:bg-orange-600"
+                }`}
+              >
+                {hasEntry ? "Locked" : "Save Entry"}
+              </button>
+              <p className="text-center text-[11px] text-gray-500 md:text-xs">
+                Values support decimals for exact amounts.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ...existing code... (Report, Table, Modal) */}
       {(isAdmin || isViewer || isDataAgent) && (
         <>
           <div className="max-w-7xl mx-auto w-full mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -554,7 +657,6 @@ export default function DailyDamages() {
               </p>
             </div>
           </div>
-
           {/* Download Report */}
           <div className="bg-white p-6 rounded-xl shadow mb-8">
             <h2 className="text-xl font-semibold mb-4">Download Report</h2>
@@ -587,7 +689,6 @@ export default function DailyDamages() {
                   </div>
                 )}
               </div>
-              
               <div className="relative z-30" ref={toCalendarRef}>
                 <label className="block text-sm text-gray-600 mb-1">
                   To Date
@@ -616,7 +717,6 @@ export default function DailyDamages() {
                   </div>
                 )}
               </div>
-              
               <button
                 onClick={downloadExcel}
                 className="mt-4 sm:mt-0 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-6 rounded-lg shadow"
@@ -625,7 +725,6 @@ export default function DailyDamages() {
               </button>
             </div>
           </div>
-
           {/* Data Table with Horizontal Scroll */}
           <div className="bg-white p-6 rounded-xl shadow mb-8">
             <div className="overflow-x-auto">
@@ -686,7 +785,6 @@ export default function DailyDamages() {
               </table>
             </div>
           </div>
-
           {/* Edit Modal */}
           {editModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
@@ -721,114 +819,6 @@ export default function DailyDamages() {
             </div>
           )}
         </>
-      )}
-
-      {/* Entry Section */}
-      {(isAdmin || isDataAgent) && (
-        <div className="mt-8 rounded-2xl bg-eggWhite p-5 shadow-sm md:p-6">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100">
-              <DamageEntryIcon className="h-6 w-6" />
-            </div>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 md:text-lg">
-                Daily Damages Entry
-              </h2>
-              <p className="text-xs text-gray-500 md:text-sm">
-                Add new egg damage amounts for each outlet.
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            {/* Select Date */}
-            <div className="grid gap-4 md:grid-cols-[160px,1fr] md:items-center">
-              <label className="text-xs font-medium text-gray-700 md:text-sm">
-                Select Date
-              </label>
-              <div className="relative w-full" ref={entryCalendarRef}>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsEntryCalendarOpen((open) => !open)}
-                    className="flex w-full items-center justify-between rounded-xl border border-gray-200 bg-eggBg px-3 py-2 pr-10 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-400 md:text-sm"
-                  >
-                    <span>
-                      {entryDate ? formatDateDMY(entryDate) : "dd-mm-yyyy"}
-                    </span>
-                  </button>
-                  <CalendarIcon className="h-4 w-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-
-                {hasEntry && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500" />
-                    <div className="text-xs font-medium text-green-700">
-                      Entry ({entryTotal}) • Locked
-                    </div>
-                  </div>
-                )}
-
-                {isEntryCalendarOpen && (
-                  <div className="absolute right-0 bottom-full z-30 mb-2">
-                    <BaseCalendar
-                      rows={damages}
-                      selectedDate={entryDate}
-                      onSelectDate={handleEntryDateSelect}
-                      showDots={true}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Outlet inputs */}
-            <div className="grid gap-3 md:grid-cols-5">
-              {outlets.map((outlet) => (
-                <div key={outlet} className="space-y-1">
-                  <p className="text-xs font-medium text-gray-600">
-                    {outlet}
-                  </p>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={form[outlet] ?? 0}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          [outlet]: Number(e.target.value),
-                        }))
-                      }
-                      disabled={hasEntry}
-                      className={`w-full rounded-xl border border-gray-200 bg-eggBg px-3 py-2 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-orange-400 md:text-sm ${
-                        hasEntry ? "bg-gray-50 cursor-not-allowed" : ""
-                      }`}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Save button */}
-            <div className="flex flex-col items-center gap-2 pt-4">
-              <button
-                type="button"
-                onClick={save}
-                disabled={hasEntry}
-                className={`inline-flex items-center justify-center rounded-2xl px-6 py-2.5 text-sm font-semibold text-white shadow-md ${
-                  hasEntry
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-orange-500 hover:bg-orange-600"
-                }`}
-              >
-                {hasEntry ? "Locked" : "Save Entry"}
-              </button>
-              <p className="text-center text-[11px] text-gray-500 md:text-xs">
-                Values support decimals for exact amounts.
-              </p>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

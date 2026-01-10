@@ -523,11 +523,18 @@ const Reports = () => {
                   onChange={(e) => setSelectedOutlet(e.target.value)}
                   disabled={loading}
                 >
-                  {outlets.map(outlet => (
-                    <option key={outlet.id} value={outlet.id}>
-                      {outlet.name}
-                    </option>
-                  ))}
+                  {outlets
+                    .filter(
+                      outlet => !["HSR LAYOUT", "Hsr layout", "kr market"].includes(
+                        (outlet.name || outlet.id || "").toLowerCase()
+                      ) &&
+                      !["hsr layout", "kr market"].includes((outlet.name || outlet.id || "").toLowerCase())
+                    )
+                    .map(outlet => (
+                      <option key={outlet.id} value={outlet.id}>
+                        {outlet.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 

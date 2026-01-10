@@ -290,9 +290,9 @@ const Entryform = ({ addRow, blockedDates, rows }) => {
               <CalendarIcon className="h-4 w-4 text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Calendar opens upwards */}
+            {/* Calendar opens downwards */}
             {open && (
-              <div className="absolute left-0 right-0 bottom-full mb-2 z-50">
+              <div className="absolute left-0 right-0 top-full mt-2 z-50">
                 <BaseCalendar
                   rows={rows}
                   selectedDate={date}

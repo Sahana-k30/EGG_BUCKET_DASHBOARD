@@ -480,16 +480,16 @@ export default function DigitalPayments() {
       return sortedRows.filter((row) => new Date(row.date) <= new Date(filterTo));
     }
 
-    // No filter applied - show latest 7 entries
-    return sortedRows.slice(-7);
+    // No filter applied - show all data
+    return sortedRows;
   }, [rows, filterFrom, filterTo]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
 
   const currentPageRows = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, page]);
+    // Show all filteredRows, no pagination
+    return filteredRows;
+  }, [filteredRows]);
 
   const handleQuickRange = (type) => {
     const today = new Date();
@@ -789,14 +789,14 @@ export default function DigitalPayments() {
               </tr>
             </thead>
             <tbody>
-              {currentPageRows.length === 0 ? (
+              {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={outlets.length + 2 + (isAdmin ? 1 : 0)} className="text-center py-6 text-gray-500">
                     No data available
                   </td>
                 </tr>
               ) : (
-                currentPageRows.map((row, idx) => (
+                filteredRows.map((row, idx) => (
                   <tr
                     key={row.id}
                     className={`text-xs text-gray-700 md:text-sm ${
@@ -868,34 +868,7 @@ export default function DigitalPayments() {
         </div>
 
         {/* Footer below table */}
-        <div className="flex flex-col gap-3 border-t border-gray-100 px-4 py-3 text-xs md:flex-row md:items-center md:justify-between">
-          <p className="text-gray-500">Showing {totalRecordsLabel}</p>
-
-          <div className="flex items-center justify-end gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-medium ${
-                page <= 1
-                  ? "border-gray-100 text-gray-300"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              ‹
-            </button>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className={`flex h-8 w-8 items-center justify-center rounded-full border text-xs font-medium ${
-                page >= totalPages
-                  ? "border-gray-100 text-gray-300"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              ›
-            </button>
-          </div>
-        </div>
+        {/* No pagination footer, all data shown */}
       </div>
 
       {/* Edit Modal */}

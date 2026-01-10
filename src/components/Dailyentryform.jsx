@@ -374,7 +374,7 @@ const Dailyentryform = ({ addrow, blockeddates, rows, outlets = [] }) => {
           </div>
         )}
         {openCal && (
-          <div className="absolute right-0 bottom-full mb-2 z-50">
+          <div className="absolute right-0 top-full mt-2 z-50">
             <BaseCalendar
               rows={rows}
               selectedDate={date}

@@ -56,6 +56,17 @@ const Dailysales = () => {
         }
       } catch (err) {
         console.error("Error fetching sales:", err);
+        {/* ================= ENTRY FORM (ADMIN + DATA AGENT) ================= */}
+        {!isViewer && (
+          <div className="mt-10">
+            <Dailyentryform
+              addrow={addrow}
+              blockeddates={rows.filter((r) => r.locked).map((r) => r.date)}
+              rows={rows}
+              outlets={outlets}
+            />
+          </div>
+        )}
         setRows([]);
       }
     };
@@ -109,8 +120,8 @@ const Dailysales = () => {
       return sortedRows.filter(row => new Date(row.date) <= new Date(toDate));
     }
 
-    // No filter applied - show latest 7 entries
-    return sortedRows.slice(-7);
+    // No filter applied - show all data
+    return sortedRows;
   };
 
   const filteredRows = getFilteredRows();
@@ -230,8 +241,19 @@ const Dailysales = () => {
   return (
     <div className="flex">
       <div className="bg-eggBg min-h-screen p-6 w-full">
-
         <Topbar />
+
+        {/* ================= ENTRY FORM (ADMIN + DATA AGENT) ================= */}
+        {!isViewer && (
+          <div className="mt-4 mb-8">
+            <Dailyentryform
+              addrow={addrow}
+              blockeddates={rows.filter((r) => r.locked).map((r) => r.date)}
+              rows={rows}
+              outlets={outlets}
+            />
+          </div>
+        )}
 
         {/* ================= HEADER ================= */}
         {(isAdmin || isViewer || isDataAgent) && (
@@ -301,18 +323,6 @@ const Dailysales = () => {
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ================= ENTRY FORM (ADMIN + DATA AGENT) ================= */}
-        {!isViewer && (
-          <div className="mt-10">
-            <Dailyentryform
-              addrow={addrow}
-              blockeddates={rows.filter((r) => r.locked).map((r) => r.date)}
-              rows={rows}
-              outlets={outlets}
-            />
           </div>
         )}
 

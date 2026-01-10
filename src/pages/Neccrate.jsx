@@ -42,8 +42,8 @@ const Neccrate = () => {
       return sortedRows.filter(row => new Date(row.date) <= new Date(toDate));
     }
 
-    // No filter applied - show latest 7 entries
-    return sortedRows.slice(-7);
+    // No filter applied - show all data
+    return sortedRows;
   };
 
   const filteredRows = getFilteredRows();
@@ -153,6 +153,19 @@ const Neccrate = () => {
     <div className="bg-eggBg min-h-screen p-6">
       <Topbar />
 
+
+      {/* ================= ENTRY FORM (ADMIN + DATA AGENT) ================= */}
+      {!isViewer && (
+        <Entryform
+          addRow={addRow}
+          blockedDates={blockedDates}
+          rows={rows}
+        />
+      )}
+
+      {/* ================= ANALYTICS (ADMIN + VIEWER + DATA AGENT) ================= */}
+      {(isAdmin || isViewer || isDataAgent) && <Rateanalytics />}
+
       {/* ================= TABLE (ADMIN + VIEWER + DATA AGENT) ================= */}
       {(isAdmin || isViewer || isDataAgent) && (
         <Table
@@ -164,18 +177,6 @@ const Neccrate = () => {
           onEdit={isAdmin ? handleEditClick : null}
           showEditColumn={isAdmin}
           allRows={rows} // Pass all rows for calendar dots
-        />
-      )}
-
-      {/* ================= ANALYTICS (ADMIN + VIEWER + DATA AGENT) ================= */}
-      {(isAdmin || isViewer || isDataAgent) && <Rateanalytics />}
-
-      {/* ================= ENTRY FORM (ADMIN + DATA AGENT) ================= */}
-      {!isViewer && (
-        <Entryform
-          addRow={addRow}
-          blockedDates={blockedDates}
-          rows={rows}
         />
       )}
 

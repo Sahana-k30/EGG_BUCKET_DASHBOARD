@@ -481,6 +481,7 @@ export default function CashPayments() {
           const d = new Date(row.date);
           return d >= from && d <= to;
         });
+    // No slice or limit: show all data
     return filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [rows, rangeType, customFrom, customTo]);
 
@@ -913,4 +914,4 @@ export default function CashPayments() {
     </div>
 
   );
-}
+  }
