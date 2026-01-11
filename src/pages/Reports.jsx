@@ -112,6 +112,11 @@ const Reports = () => {
       // Dynamic import of xlsx
       const XLSX = await import('xlsx');
       
+      // Calculate average closing balance
+      const avgClosingBalance = reportData.transactions.length > 0
+        ? reportData.transactions.reduce((sum, t) => sum + t.difference, 0) / reportData.transactions.length
+        : 0;
+      
       // Prepare summary data
       const summaryData = [
         { Field: 'Outlet', Value: selectedOutlet },
@@ -119,9 +124,9 @@ const Reports = () => {
         { Field: 'Date To', Value: dateRange.to || 'All' },
         { Field: '', Value: '' },
         { Field: 'Total Sales Quantity', Value: `${reportData.totalSalesQuantity || 0} eggs` },
-        { Field: 'Average NECC Rate', Value: `₹${reportData.averageNeccRate?.toFixed(2) || '0.00'}` },
+        { Field: 'Average Closing Balance', Value: `₹${Math.round(avgClosingBalance)}` },
         { Field: 'Total Amount', Value: `₹${reportData.totalAmount?.toLocaleString() || '0'}` },
-        { Field: 'Total Difference', Value: `₹${reportData.totalDifference?.toLocaleString() || '0'}` },
+        { Field: 'Total Damages', Value: `${Math.round(Math.abs(reportData.totalDifference || 0))}` },
         { Field: '', Value: '' }
       ];
       
@@ -134,7 +139,7 @@ const Reports = () => {
         'Digital Pay': `₹${t.digitalPay.toLocaleString()}`,
         'Cash Pay': `₹${t.cashPay.toLocaleString()}`,
         'Total Recv.': `₹${t.totalRecv.toLocaleString()}`,
-        'Difference': `₹${t.difference.toLocaleString()}`
+        'Closing Balance': `₹${t.difference.toLocaleString()}`
       }));
       
       // Create workbook
@@ -206,6 +211,13 @@ const Reports = () => {
     return { digitalVsCashData: digitalVsCash, pieChartData: pieData };
   }, [reportData?.transactions]);
 
+  // Calculate average closing balance
+  const averageClosingBalance = useMemo(() => {
+    if (!reportData?.transactions || reportData.transactions.length === 0) return 0;
+    const sum = reportData.transactions.reduce((total, t) => total + t.difference, 0);
+    return Math.round(sum / reportData.transactions.length);
+  }, [reportData?.transactions]);
+
   const COLORS = ['#ff7518', '#ffa866'];
 
   if (outletsLoading) {
@@ -249,7 +261,7 @@ const Reports = () => {
           border-radius: 8px;
           display: flex;
           align-items: center;
-          justify-center: center;
+          justify-content: center;
           font-size: 20px;
         }
 
@@ -669,63 +681,6 @@ const Reports = () => {
         {/* Content */}
         {!loading && reportData && (
           <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#fff3e0' }}>
-                    🥚
-                  </div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Sales Quantity</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-gray-900">{reportData.totalSalesQuantity || 0}</span>
-                  <span className="text-base text-gray-500">eggs</span>
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#e8f5e9' }}>
-                    📊
-                  </div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">NECC Rate</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-gray-900">₹ {reportData.averageNeccRate?.toFixed(2) || '0.00'}</span>
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#e3f2fd' }}>
-                    💰
-                  </div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Amount</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-gray-900">₹ {reportData.totalAmount?.toLocaleString() || '0'}</span>
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#ffebee' }}>
-                    ⚠️
-                  </div>
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Damages</span>
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-3xl font-bold ${
-                    reportData.totalDifference < 0 ? 'text-red-600' : 
-                    reportData.totalDifference > 0 ? 'text-green-600' : 'text-gray-900'
-                  }`}>
-                    {reportData.totalDifference > 0 ? '' : ''}  {Math.abs(reportData.totalDifference || 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* Transactions Table */}
             <div className="overflow-hidden rounded-2xl bg-eggWhite shadow-sm mb-6">
               <div className="overflow-x-auto">
@@ -775,6 +730,63 @@ const Reports = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#fff3e0' }}>
+                    🥚
+                  </div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Sales Quantity</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-gray-900">{reportData.totalSalesQuantity || 0}</span>
+                  <span className="text-base text-gray-500">eggs</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#e3f2fd' }}>
+                    💰
+                  </div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Amount</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-gray-900">₹ {reportData.totalAmount?.toLocaleString() || '0'}</span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#ffebee' }}>
+                    ⚠️
+                  </div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Damages</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className={`text-3xl font-bold ${
+                    reportData.totalDifference < 0 ? 'text-red-600' : 
+                    reportData.totalDifference > 0 ? 'text-green-600' : 'text-gray-900'
+                  }`}>
+                    {Math.round(Math.abs(reportData.totalDifference || 0)).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: '#e8f5e9' }}>
+                    📊
+                  </div>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Avg of Closing Balances</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-gray-900">₹ {averageClosingBalance.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
