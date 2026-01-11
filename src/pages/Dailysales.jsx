@@ -338,7 +338,7 @@ const Dailysales = () => {
         {/* ================= WEEKLY TREND (ADMIN ONLY) ================= */}
         {isAdmin && (
           <div className="mt-10">
-            <Weeklytrend />
+            <Weeklytrend rows={rows} />
           </div>
         )}
       </div>
