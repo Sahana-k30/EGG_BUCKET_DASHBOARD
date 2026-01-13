@@ -24,6 +24,7 @@ const normalizeDate = (dateStr) => {
 };
 
 const Neccrate = () => {
+  // all the props are mentioned here
   const { isAdmin, isViewer, isDataAgent } = getRoleFlags();
 
   const [rows, setRows] = useState([]);
