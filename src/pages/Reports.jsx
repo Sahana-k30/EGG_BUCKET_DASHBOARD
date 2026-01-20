@@ -61,9 +61,14 @@ const Reports = () => {
       setOutletsLoading(true);
       try {
         const outletsData = await fetchOutlets();
-        setOutlets(outletsData);
-        if (outletsData.length > 0) {
-          setSelectedOutlet(outletsData[0].id);
+        // Always use outlet name as id for dropdown and API calls
+        const normalizedOutlets = outletsData.map(o => ({
+          id: o.name || o.id, // Use name as id if available
+          name: o.name || o.id
+        }));
+        setOutlets(normalizedOutlets);
+        if (normalizedOutlets.length > 0) {
+          setSelectedOutlet(normalizedOutlets[0].id);
         }
       } catch (err) {
         setError('Failed to load outlets');
