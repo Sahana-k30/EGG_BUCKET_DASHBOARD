@@ -96,39 +96,21 @@ export default function Outlets() {
       const res = await fetch(`${API_URL}/outlets/all`);
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           console.log('Outlets loaded from backend:', data.length);
           setOutlets(data);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
           setError(null);
         } else {
-          throw new Error('Empty outlets response');
+          throw new Error('Invalid outlets response');
         }
       } else {
         throw new Error(`Backend error: ${res.status}`);
       }
     } catch (err) {
       console.error("Error fetching outlets:", err);
-      
-      // Try localStorage as fallback
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            console.log('Using cached outlets from localStorage');
-            setOutlets(parsed);
-            setError(null);
-            return;
-          }
-        } catch (parseErr) {
-          console.error("Error parsing saved outlets:", parseErr);
-        }
-      }
-      
-      // No data available at all
       setOutlets([]);
-      setError('Failed to load outlets. Please refresh the page.');
+      setError('Failed to load outlets from backend.');
     }
   }, []);
 
@@ -150,51 +132,7 @@ export default function Outlets() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [fetchOutlets]);
 
-  // Ensure required areas exist
-  useEffect(() => {
-    if (outlets.length === 0) return;
-
-    setOutlets((prev) => {
-      const areas = new Set(prev.map((o) => o.area));
-      const missing = REQUIRED_AREAS.filter((r) => !areas.has(r));
-      
-      if (missing.length === 0) return prev;
-
-      console.log('Adding missing outlets:', missing);
-      
-      const existingIds = new Set(prev.map((o) => o.id));
-      let nextNum = 1;
-      const getNextId = () => {
-        while (existingIds.has(`OUT-${String(nextNum).padStart(3, "0")}`)) {
-          nextNum++;
-        }
-        const id = `OUT-${String(nextNum).padStart(3, "0")}`;
-        existingIds.add(id);
-        return id;
-      };
-
-      const added = missing.map((area) => ({
-        id: getNextId(),
-        name: `${area} Outlet`,
-        area,
-        contact: "-",
-        phone: "-",
-        status: "Active",
-        reviewStatus: "ok",
-      }));
-
-      // Sync missing outlets to backend
-      added.forEach((outlet) => {
-        fetch(`${API_URL}/outlets/add`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(outlet),
-        }).catch(err => console.error('Failed to sync outlet to backend:', err));
-      });
-
-      return [...added, ...prev];
-    });
-  }, []);
+  // Removed auto-add logic for required areas
 
   // Persist to localStorage and dispatch event when outlets change
   useEffect(() => {
