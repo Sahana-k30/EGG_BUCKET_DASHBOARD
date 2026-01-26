@@ -157,8 +157,9 @@ export default function SignIn() {
             onChange={(e) => setRole(e.target.value)}
             className="w-full p-3 rounded-xl bg-eggInput outline-none shadow"
           >
-            <option value="admin">Admin</option>
+              <option value="admin">Admin</option>
               <option value="viewer">Viewer</option>
+              <option value="dataagent">DataAgent</option>
           </select>
 
           <button
