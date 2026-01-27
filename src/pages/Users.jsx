@@ -82,13 +82,22 @@ const Users = () => {
     };
   }, [overflowOpen]);
 
-  // Fetch users from backend
+  // Fetch users (dataagents + viewers) from backend
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const res = await fetch(`${API_URL}/admin/all-dataagents`);
-        const data = await res.json();
-        setUsers(Array.isArray(data) ? data : []);
+        const [dataagentsRes, viewersRes] = await Promise.all([
+          fetch(`${API_URL}/admin/all-dataagents`),
+          fetch(`${API_URL}/admin/all-viewers`)
+        ]);
+        const dataagents = await dataagentsRes.json();
+        const viewers = await viewersRes.json();
+        // Merge and deduplicate by username (if needed)
+        const allUsers = [
+          ...(Array.isArray(dataagents) ? dataagents : []),
+          ...(Array.isArray(viewers) ? viewers : [])
+        ];
+        setUsers(allUsers);
       } catch {
         setUsers([]);
       }
