@@ -3,7 +3,7 @@
 
 // Configuration - Use Vite env variable or fallback to relative path for deployment compatibility
 const config = {
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || '/api'
+  apiBaseUrl: import.meta.env.VITE_API_URL || '/api'
 };
 
 const API_BASE_URL = config.apiBaseUrl;

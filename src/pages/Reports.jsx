@@ -4,7 +4,7 @@ import { fetchReportsData, fetchOutlets, exportReports } from '../context/report
 // DEBUG: Fetch all outlet names from backend data for troubleshooting
 async function fetchAllOutletNames() {
   try {
-    const res = await fetch(import.meta.env.VITE_API_BASE_URL + '/outlets/all');
+    const res = await fetch(import.meta.env.VITE_API_URL + '/outlets/all');
     if (!res.ok) return [];
     const data = await res.json();
     if (Array.isArray(data)) {
@@ -343,18 +343,7 @@ const Reports = () => {
       `}</style>
 
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
-        {/* DEBUG: Show all outlet names found in backend */}
-        {debugOutletNames.length > 0 && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-900">
-            <strong>Debug: Outlet names in backend data:</strong>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {debugOutletNames.map(name => (
-                <span key={name} className="px-2 py-1 bg-yellow-100 rounded border border-yellow-200">{name}</span>
-              ))}
-            </div>
-            <div className="mt-1 text-yellow-800">Ensure your data entry matches these names exactly for reports to work.</div>
-          </div>
-        )}
+        {/* Debug outlet names banner removed as requested */}
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-semibold text-gray-900">Reports</h1>
